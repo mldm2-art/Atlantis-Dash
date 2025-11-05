@@ -1,0 +1,15 @@
+# Ignorar configurações locais do VS Code
+.vscode/
+
+# Ignorar executável do jogo
+atlantis_dash
+
+# Ignorar arquivos temporários e binários
+*.o
+*.exe
+*.out
+build/
+
+# Ignorar arquivos de sistema
+.DS_Store
+Thumbs.db

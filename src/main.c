@@ -1,38 +1,36 @@
+// src/main.c
 #include "raylib.h"
+#include "game.h"
 
+// Função principal: ponto de entrada do jogo
 int main(void) {
+    // Define o tamanho da janela
+    const int screenWidth = 800;
+    const int screenHeight = 600;
 
-    InitWindow(800, 600, "Atlantis Dash"); //inicializa a janela (função do raylib) com 800px de largura, 600px de altura e o título
-    SetTargetFPS(60); //frames por segundo que o joigo vai rodar
+    // Inicializa a janela Raylib
+    InitWindow(screenWidth, screenHeight, "Atlantis Dash");
 
-    while (!WindowShouldClose()) { //while principal do jogo, dentro dele vai tudo que acontecerá até o player fechar a tela do raylib
+    // Inicializa o sistema de áudio (mesmo que ainda não use sons)
+    InitAudioDevice();
 
-        if (IsKeyPressed(KEY_ENTER)) {
-            // Futuro: iniciar o jogo
-        }
+    // Cria e inicializa a estrutura do jogo (definida em game.h / game.c)
+    Game game = InitGame(screenWidth, screenHeight);
 
-        // --- Desenho ---
-        BeginDrawing(); //Início do desenho: a partir dessa função do raylib entra tudo oq será desenhado na nossa tela (textos, imagens, cores, bonecos)
-            ClearBackground((Color){0, 105, 148, 255}); //define a cor de fundo
+    // Define o FPS (frames por segundo)
+    SetTargetFPS(60);
 
-            int largura_total = GetScreenWidth(); //mantém a largura toda quando coloca fullscreen
-            int altura_total = GetScreenHeight(); //mantém a altura toda quando coloca fullscreen
+    // Loop principal do jogo: roda até a janela ser fechada
+    while (!WindowShouldClose()) {
+        // Atualiza a lógica do jogo (movimentos, estados, etc.)
+        UpdateGame(&game);
 
-            DrawText("ATLANTIS DASH", //título
-                     largura_total/2 - MeasureText("ATLANTIS DASH", 60)/2, 
-                     altura_total/2 - 100,
-                     60,
-                     RAYWHITE); //cor do título
-
-            DrawText("Pressione Enter para iniciar o jogo...",
-                    largura_total/2 - MeasureText("Pressione Enter para iniciar o jogo...", 20)/2,
-                    altura_total/2 + 50,
-                    20,
-                    RAYWHITE);
-
-        EndDrawing(); //Fim do desenho
+        // Desenha tudo na tela (menu, grid, jogador, etc.)
+        DrawGame(&game);
     }
 
-    CloseWindow(); //fecha a janela
+    // Encerra o sistema de áudio e fecha a janela
+    CloseAudioDevice();
+    CloseWindow();
     return 0;
 }
