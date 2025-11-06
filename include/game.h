@@ -78,4 +78,3 @@ void UpdateGame(Game *game);
 void DrawGame(Game *game);
 
 #endif
-
