@@ -1,25 +1,33 @@
-EXEC_NAME = atlantis_dash #nome do nosso executável
+# Nome do executável final
+EXEC_NAME = atlantis_dash
 
-CC = gcc #definindo nosso compilador (o gcc é padrão da linguagem C)
+# Compilador
+CC = gcc
 
-SRC_DIR = src #diretório dos arquivos .c
-INCLUDE_DIR = include #diretórios dos arquivos .h
+# Diretórios
+SRC_DIR = src
+INCLUDE_DIR = include
 
-SRCS = $(wildcard $(SRC_DIR)/*.c) #pega todos os arquivos .c da pasta src
+# Pega todos os arquivos .c da pasta src
+SRCS := $(wildcard $(SRC_DIR)/*.c)
 
-CFLAGS = -Wall -I$(INCLUDE_DIR) #-Wall (ativa o compilador) -I(indica onde estão os arquivos .h)
+# Flags de compilação
+CFLAGS = -Wall -I$(INCLUDE_DIR)
 
-LIBS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 #biblioteca que está sendo utilizada
+# Bibliotecas a serem linkadas
+LIBS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
-all: $(EXEC_NAME) #comando para compilar todo o nosso executável
+# Regra principal: compilar tudo
+all: $(EXEC_NAME)
 
-$(EXEC_NAME): $(SRCS) #faz a compilação de todos os arquivos .c e gera o executável
-	# O comando para construir (TEM DE TER UM 'TAB' NO INÍCIO)
-	$(CC) $(SRCS) -o $(EXEC_NAME) $(CFLAGS) $(LIBS)
+# Como gerar o executável
+$(EXEC_NAME): $(SRCS)
+	$(CC) $(SRCS) $(CFLAGS) $(LIBS) -o $(EXEC_NAME)
 
-run: all #comando 'make run' para já compilar e executar o jogo
+# Comando para rodar o jogo diretamente
+run: all
 	./$(EXEC_NAME)
 
-clean: #comando 'make clean' que apaga o executável para recompilar do zero
-	# (TEM DE TER UM 'TAB' NO INÍCIO)
+# Limpeza do projeto
+clean:
 	rm -f $(EXEC_NAME)
