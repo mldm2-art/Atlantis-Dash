@@ -16,6 +16,9 @@ int main(void) {
         DrawGame(&game);
     }
 
+    // ✅ Libera a textura antes de fechar
+    UnloadTexture(game.playerTexture);
+
     CloseAudioDevice();
     CloseWindow();
     return 0;

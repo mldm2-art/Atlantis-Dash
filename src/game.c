@@ -21,6 +21,9 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.player.blocoTamanho = game.blocoTamanho;
     game.player.areaY = game.hudAltura;
 
+    // ✅ Carrega sprite do jogador
+    game.playerTexture = LoadTexture("assets/personagemsprite.png");
+
     // Menu
     game.menuSelecionado = 0;
 
@@ -128,10 +131,17 @@ void DrawGame(Game *game) {
         // Obstáculos
         DrawObstacles(game->obstaculos, game->totalObstaculos, game->blocoTamanho, game->hudAltura);
 
-        // Jogador
+        // ✅ Jogador com sprite
         float px = game->player.coluna * game->blocoTamanho + game->blocoTamanho / 4;
         float py = game->hudAltura + game->player.linha * game->blocoTamanho + game->blocoTamanho / 4;
-        DrawRectangle(px, py, game->blocoTamanho / 2, game->blocoTamanho / 2, YELLOW);
+
+        DrawTextureEx(
+            game->playerTexture,
+            (Vector2){ px, py },
+            0.0f,
+            game->blocoTamanho / 96.0f, // escala baseada no tamanho original do sprite
+            WHITE
+        );
     }
 
     EndDrawing();

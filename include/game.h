@@ -4,11 +4,13 @@
 #include "raylib.h"
 #include "obstacle.h"
 
+// Estados do jogo
 typedef enum {
     MENU,
     JOGANDO
 } GameState;
 
+// Estrutura do jogador
 typedef struct {
     int linha;
     int coluna;
@@ -18,6 +20,7 @@ typedef struct {
 
 #define MAX_OBSTACLES 256
 
+// Estrutura principal do jogo
 typedef struct {
     GameState estado;
 
@@ -33,6 +36,7 @@ typedef struct {
 
     // Jogador
     Player player;
+    Texture2D playerTexture;   // ✅ Sprite do jogador (96x96 PNG)
 
     // Menu
     int menuSelecionado;
@@ -47,5 +51,6 @@ typedef struct {
 Game InitGame(int screenWidth, int screenHeight);
 void UpdateGame(Game *game);
 void DrawGame(Game *game);
+void UnloadGame(Game *game); // ✅ nova função para liberar a textura
 
 #endif
