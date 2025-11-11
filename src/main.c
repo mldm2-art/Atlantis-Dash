@@ -5,8 +5,14 @@ int main(void) {
     const int screenWidth = 800;
     const int screenHeight = 600;
 
+    // Configurações da janela
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
+
     InitWindow(screenWidth, screenHeight, "Atlantis Dash");
     InitAudioDevice();
+
+    // ESC não fecha a janela
+    SetExitKey(KEY_NULL);
 
     Game game = InitGame(screenWidth, screenHeight);
     SetTargetFPS(60);
@@ -16,7 +22,7 @@ int main(void) {
         DrawGame(&game);
     }
 
-    // ✅ Libera a textura antes de fechar
+    // Libera a textura antes de fechar
     UnloadTexture(game.playerTexture);
 
     CloseAudioDevice();

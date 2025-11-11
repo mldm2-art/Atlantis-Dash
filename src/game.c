@@ -26,6 +26,7 @@ Game InitGame(int screenWidth, int screenHeight) {
 
     // Menu
     game.menuSelecionado = 0;
+    game.nivelSelecionado = 0;
 
     // Obstáculos
     InitObstacles(game.obstaculos, game.colunas, game.linhas, &game.totalObstaculos);
@@ -53,10 +54,29 @@ void UpdateGame(Game *game) {
         if (IsKeyPressed(KEY_W) && game->menuSelecionado > 0) game->menuSelecionado--;
         if (IsKeyPressed(KEY_S) && game->menuSelecionado < 1) game->menuSelecionado++;
         if (IsKeyPressed(KEY_ENTER)) {
-            if (game->menuSelecionado == 0) game->estado = JOGANDO;
+            if (game->menuSelecionado == 0) game->estado = SELECAO_NIVEL;
             else TraceLog(LOG_INFO, "Mostrar instrucoes...");
         }
     }
+        // ---------------- SELEÇÃO DE NÍVEL ----------------
+    else if (game->estado == SELECAO_NIVEL) {
+        // Navega entre os 4 níveis
+        if (IsKeyPressed(KEY_W) && game->nivelSelecionado > 0) game->nivelSelecionado--;
+        if (IsKeyPressed(KEY_S) && game->nivelSelecionado < 3) game->nivelSelecionado++;
+
+        // ENTER inicia o jogo com o nível selecionado
+        if (IsKeyPressed(KEY_ENTER)) {
+            game->estado = JOGANDO;
+            // Aqui no futuro você pode configurar a dificuldade de acordo com o nível
+            // Exemplo: ajustar velocidade de obstáculos, quantidade, etc.
+        }
+
+        // Tecla ESC volta ao menu
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            game->estado = MENU;
+        }
+    }
+
     // ---------------- JOGANDO ----------------
     else if (game->estado == JOGANDO) {
         if (IsKeyPressed(KEY_W) && game->player.linha > 0) game->player.linha--;
@@ -69,6 +89,10 @@ void UpdateGame(Game *game) {
         if (CheckCollisionPlayerObstacle(&game->player, game->obstaculos, game->totalObstaculos)) {
             game->player.linha = 2;
             game->player.coluna = 0;
+        }
+        // ESC volta à tela de seleção de nível
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            game->estado = SELECAO_NIVEL;
         }
     }
 }
@@ -109,11 +133,47 @@ void DrawGame(Game *game) {
         float alphaMsg = (sin(GetTime() * 3) + 1) / 2;
         DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.6f + 0.4f * alphaMsg));
     }
+    
+    // ---------------- SELEÇÃO DE NÍVEL ----------------
+    else if (game->estado == SELECAO_NIVEL) {
+        const char *titulo = "SELECIONE O NIVEL";
+        DrawText(titulo, game->screenWidth / 2 - MeasureText(titulo, 50) / 2, 100, 50, SKYBLUE);
+
+        const char *niveis[4] = {
+            "Nivel 1 - Recifes Rasos",
+            "Nivel 2 - Caverna Coralina",
+            "Nivel 3 - Passagem do Tubarao",
+            "Nivel 4 - Abismo Final"
+        };
+
+        int tamanhoFonte = 28;
+        int espacamento = 60;
+        int baseY = game->screenHeight / 2 - espacamento * 2;
+
+        for (int i = 0; i < 4; i++) {
+            int textWidth = MeasureText(niveis[i], tamanhoFonte);
+            int posX = game->screenWidth / 2 - textWidth / 2;
+            int posY = baseY + i * espacamento;
+
+            if (i == game->nivelSelecionado) {
+                float alpha = (sin(GetTime() * 4) + 1) / 2;
+                Color glow = Fade(YELLOW, 0.5f + 0.5f * alpha);
+                DrawRectangle(posX - 25, posY - 10, textWidth + 50, 45, Fade(BLUE, 0.3f));
+                DrawText(niveis[i], posX, posY, tamanhoFonte, glow);
+            } else {
+                DrawText(niveis[i], posX, posY, tamanhoFonte, LIGHTGRAY);
+            }
+        }
+
+        const char *msg = "ENTER para iniciar  |  ESC para voltar";
+        DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.8f));
+    }
+
     // ---------------- JOGANDO ----------------
     else if (game->estado == JOGANDO) {
         // HUD
         DrawRectangle(0, 0, game->screenWidth, game->hudAltura, (Color){20, 50, 80, 255});
-        DrawText("HUD", 10, 10, 20, RAYWHITE);
+        DrawText(TextFormat("Nivel %d", game->nivelSelecionado + 1), 10, 10, 20, RAYWHITE);
 
         // Grid
         for (int l = 0; l < game->linhas; l++) {
@@ -145,4 +205,10 @@ void DrawGame(Game *game) {
     }
 
     EndDrawing();
+}
+
+// Libera os recursos do jogo
+
+void UnloadGame(Game *game) {
+    UnloadTexture(game->playerTexture);
 }

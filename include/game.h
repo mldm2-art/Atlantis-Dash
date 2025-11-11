@@ -7,6 +7,7 @@
 // Estados do jogo
 typedef enum {
     MENU,
+    SELECAO_NIVEL,
     JOGANDO
 } GameState;
 
@@ -38,8 +39,9 @@ typedef struct {
     Player player;
     Texture2D playerTexture;   // ✅ Sprite do jogador (96x96 PNG)
 
-    // Menu
+    // Menu e seleção
     int menuSelecionado;
+    int nivelSelecionado;
 
     // Obstáculos
     Obstacle obstaculos[MAX_OBSTACLES];
