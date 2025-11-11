@@ -39,8 +39,7 @@ typedef struct {
     // Jogador
     Player player;
     Texture2D playerTexture;   // ✅ Sprite do jogador (96x96 PNG)
-
-    // Menu e seleção
+    Texture2D backgroundTexture;    // Menu e seleção
     int menuSelecionado;
     int nivelSelecionado;
 

@@ -24,6 +24,9 @@ Game InitGame(int screenWidth, int screenHeight) {
     // Carrega sprite do jogador
     game.playerTexture = LoadTexture("assets/imgs/personagemsprite.png");
 
+    // ALTERAÇÃO: Carrega a textura de fundo
+    game.backgroundTexture = LoadTexture("assets/imgs/menu_jogo.png");
+
     // Menu
     game.menuSelecionado = 0;
     game.nivelSelecionado = 0;
@@ -108,10 +111,23 @@ void UpdateGame(Game *game) {
 
 void DrawGame(Game *game) {
     BeginDrawing();
-    ClearBackground((Color){10, 30, 60, 255}); // fundo azul oceânico
+    
+    // ALTERAÇÃO: Movido o ClearBackground para dentro dos estados que
+    // não usam a textura de fundo.
+    // ClearBackground((Color){10, 30, 60, 255}); // fundo azul oceânico (MOVIDO)
 
     // ---------------- MENU ----------------
     if (game->estado == MENU) {
+        // ALTERAÇÃO: Desenha a textura de fundo esticada para a tela
+        DrawTexturePro(
+            game->backgroundTexture,
+            (Rectangle){ 0, 0, game->backgroundTexture.width, game->backgroundTexture.height },
+            (Rectangle){ 0, 0, (float)game->screenWidth, (float)game->screenHeight },
+            (Vector2){ 0, 0 },
+            0.0f,
+            WHITE
+        );
+
         const char *titulo = "ATLANTIS DASH";
         DrawText(titulo, game->screenWidth / 2 - MeasureText(titulo, 60) / 2, 120, 60, SKYBLUE);
 
@@ -145,6 +161,7 @@ void DrawGame(Game *game) {
 
             // ---------------- INSTRUÇÕES ----------------
     else if (game->estado == INSTRUCOES) {
+        // Este estado mantém seu fundo sólido
         ClearBackground((Color){5, 25, 45, 255}); // Fundo azul escuro oceânico
 
         int w = game->screenWidth;
@@ -242,6 +259,16 @@ void DrawGame(Game *game) {
     
     // ---------------- SELEÇÃO DE NÍVEL ----------------
     else if (game->estado == SELECAO_NIVEL) {
+        // ALTERAÇÃO: Desenha a textura de fundo esticada para a tela
+        DrawTexturePro(
+            game->backgroundTexture,
+            (Rectangle){ 0, 0, game->backgroundTexture.width, game->backgroundTexture.height },
+            (Rectangle){ 0, 0, (float)game->screenWidth, (float)game->screenHeight },
+            (Vector2){ 0, 0 },
+            0.0f,
+            WHITE
+        );
+
         const char *titulo = "SELECIONE O NIVEL";
         DrawText(titulo, game->screenWidth / 2 - MeasureText(titulo, 50) / 2, 100, 50, SKYBLUE);
 
@@ -271,12 +298,15 @@ void DrawGame(Game *game) {
             }
         }
 
-        const char *msg = "ENTER para iniciar  |  ESC para voltar";
+        const char *msg = "ENTER para iniciar   |   ESC para voltar";
         DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.8f));
     }
 
     // ---------------- JOGANDO ----------------
     else if (game->estado == JOGANDO) {
+        // ALTERAÇÃO: Fundo sólido apenas para o estado JOGANDO
+        ClearBackground((Color){10, 30, 60, 255}); 
+
         // HUD
         DrawRectangle(0, 0, game->screenWidth, game->hudAltura, (Color){20, 50, 80, 255});
         DrawText(TextFormat("Nivel %d", game->nivelSelecionado + 1), 10, 10, 20, RAYWHITE);
@@ -317,4 +347,7 @@ void DrawGame(Game *game) {
 
 void UnloadGame(Game *game) {
     UnloadTexture(game->playerTexture);
+    
+    // ALTERAÇÃO: Descarrega a textura de fundo
+    UnloadTexture(game->backgroundTexture);
 }
