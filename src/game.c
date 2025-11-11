@@ -21,8 +21,8 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.player.blocoTamanho = game.blocoTamanho;
     game.player.areaY = game.hudAltura;
 
-    // ✅ Carrega sprite do jogador
-    game.playerTexture = LoadTexture("assets/personagemsprite.png");
+    // Carrega sprite do jogador
+    game.playerTexture = LoadTexture("assets/imgs/personagemsprite.png");
 
     // Menu
     game.menuSelecionado = 0;
