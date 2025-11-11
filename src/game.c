@@ -55,9 +55,18 @@ void UpdateGame(Game *game) {
         if (IsKeyPressed(KEY_S) && game->menuSelecionado < 1) game->menuSelecionado++;
         if (IsKeyPressed(KEY_ENTER)) {
             if (game->menuSelecionado == 0) game->estado = SELECAO_NIVEL;
-            else TraceLog(LOG_INFO, "Mostrar instrucoes...");
+            else if(game->menuSelecionado == 1) game->estado = INSTRUCOES;
         }
     }
+
+        // ---------------- INSTRUÇÕES ----------------
+    else if (game->estado == INSTRUCOES) {
+        // Volta para o menu ao apertar ESC ou ENTER
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            game->estado = MENU;
+        }
+    }
+
         // ---------------- SELEÇÃO DE NÍVEL ----------------
     else if (game->estado == SELECAO_NIVEL) {
         // Navega entre os 4 níveis
@@ -133,6 +142,41 @@ void DrawGame(Game *game) {
         float alphaMsg = (sin(GetTime() * 3) + 1) / 2;
         DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.6f + 0.4f * alphaMsg));
     }
+
+        // ---------------- INSTRUÇÕES ----------------
+    else if (game->estado == INSTRUCOES) {
+        ClearBackground((Color){5, 25, 45, 255}); // Fundo azul escuro oceânico
+
+        const char *titulo = "INSTRUCOES DO JOGO";
+        DrawText(titulo,
+                 game->screenWidth / 2 - MeasureText(titulo, 50) / 2,
+                 80, 50, SKYBLUE);
+
+        const char *texto1 = "Bem-vindo a ATLANTIS DASH!";
+        const char *texto2 = "Você é um peixe tentando cruzar os mares de Atlântida.";
+        const char *texto3 = "Desvie de obstáculos e avance o máximo que conseguir!";
+
+        int fontSize = 22;
+        DrawText(texto1, game->screenWidth / 2 - MeasureText(texto1, fontSize) / 2, 180, fontSize, RAYWHITE);
+        DrawText(texto2, game->screenWidth / 2 - MeasureText(texto2, fontSize) / 2, 210, fontSize, RAYWHITE);
+        DrawText(texto3, game->screenWidth / 2 - MeasureText(texto3, fontSize) / 2, 240, fontSize, RAYWHITE);
+
+        // Controles
+        DrawText("CONTROLES:", game->screenWidth / 2 - MeasureText("CONTROLES:", 25) / 2, 310, 25, YELLOW);
+        DrawText("W - Mover para cima", game->screenWidth / 2 - 150, 350, 20, LIGHTGRAY);
+        DrawText("S - Mover para baixo", game->screenWidth / 2 - 150, 380, 20, LIGHTGRAY);
+        DrawText("D - Mover para frente", game->screenWidth / 2 - 150, 410, 20, LIGHTGRAY);
+        DrawText("ESC - Voltar ao menu", game->screenWidth / 2 - 150, 440, 20, LIGHTGRAY);
+
+        // Mensagem piscando
+        const char *msg = "Pressione ESC ou ENTER para voltar";
+        float alpha = (sin(GetTime() * 3) + 1) / 2;
+        DrawText(msg,
+                 game->screenWidth / 2 - MeasureText(msg, 18) / 2,
+                 game->screenHeight - 80, 18,
+                 Fade(RAYWHITE, 0.6f + 0.4f * alpha));
+    }
+
     
     // ---------------- SELEÇÃO DE NÍVEL ----------------
     else if (game->estado == SELECAO_NIVEL) {

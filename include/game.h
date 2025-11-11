@@ -7,6 +7,7 @@
 // Estados do jogo
 typedef enum {
     MENU,
+    INSTRUCOES,
     SELECAO_NIVEL,
     JOGANDO
 } GameState;
