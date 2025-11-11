@@ -143,37 +143,83 @@ void DrawGame(Game *game) {
         DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.6f + 0.4f * alphaMsg));
     }
 
-        // ---------------- INSTRUÇÕES ----------------
+            // ---------------- INSTRUÇÕES ----------------
     else if (game->estado == INSTRUCOES) {
         ClearBackground((Color){5, 25, 45, 255}); // Fundo azul escuro oceânico
 
         const char *titulo = "INSTRUCOES DO JOGO";
         DrawText(titulo,
                  game->screenWidth / 2 - MeasureText(titulo, 50) / 2,
-                 80, 50, SKYBLUE);
+                 60, 50, SKYBLUE);
 
-        const char *texto1 = "Bem-vindo a ATLANTIS DASH!";
-        const char *texto2 = "Você é um peixe tentando cruzar os mares de Atlântida.";
-        const char *texto3 = "Desvie de obstáculos e avance o máximo que conseguir!";
+        // ---------------- INTRODUÇÃO ----------------
+        const char *intro1 = "Bem-vindo às profundezas de Atlantis Dash!";
+        const char *intro2 = "Você é um pequeno peixe em uma jornada pelos mares de Atlântida.";
+        const char *intro3 = "Seu objetivo é atravessar o oceano em segurança, desviando de corais, tubarões e outros perigos.";
+        const char *intro4 = "Mantenha-se em movimento e veja até onde você consegue chegar!";
 
-        int fontSize = 22;
-        DrawText(texto1, game->screenWidth / 2 - MeasureText(texto1, fontSize) / 2, 180, fontSize, RAYWHITE);
-        DrawText(texto2, game->screenWidth / 2 - MeasureText(texto2, fontSize) / 2, 210, fontSize, RAYWHITE);
-        DrawText(texto3, game->screenWidth / 2 - MeasureText(texto3, fontSize) / 2, 240, fontSize, RAYWHITE);
+        int fontSize = 18;
+        int posY = 140;
+        DrawText(intro1, game->screenWidth / 2 - MeasureText(intro1, fontSize) / 2, posY, fontSize, RAYWHITE);
+        DrawText(intro2, game->screenWidth / 2 - MeasureText(intro2, fontSize) / 2, posY + 25, fontSize, RAYWHITE);
+        DrawText(intro3, game->screenWidth / 2 - MeasureText(intro3, fontSize) / 2, posY + 50, fontSize, RAYWHITE);
+        DrawText(intro4, game->screenWidth / 2 - MeasureText(intro4, fontSize) / 2, posY + 75, fontSize, RAYWHITE);
+
+        // ---------------- LADO ESQUERDO ----------------
+        int leftX = 60;
+
+        // Objetivo principal
+        DrawText("OBJETIVO PRINCIPAL:", leftX, posY + 120, 22, YELLOW);
+        DrawText("Chegar ao final dos quatro níveis desviando de obstáculos e inimigos enquanto coleta moedas.",
+                 leftX, posY + 150, 18, RAYWHITE);
+        DrawText("O jogador vence ao completar os níveis, e o ranking é definido por tempo e moedas coletadas.",
+                 leftX, posY + 170, 18, RAYWHITE);
+        DrawText("OBS: Cada nível é desbloqueado apenas após concluir o anterior.",
+                 leftX, posY + 190, 18, LIGHTGRAY);
 
         // Controles
-        DrawText("CONTROLES:", game->screenWidth / 2 - MeasureText("CONTROLES:", 25) / 2, 310, 25, YELLOW);
-        DrawText("W - Mover para cima", game->screenWidth / 2 - 150, 350, 20, LIGHTGRAY);
-        DrawText("S - Mover para baixo", game->screenWidth / 2 - 150, 380, 20, LIGHTGRAY);
-        DrawText("D - Mover para frente", game->screenWidth / 2 - 150, 410, 20, LIGHTGRAY);
-        DrawText("ESC - Voltar ao menu", game->screenWidth / 2 - 150, 440, 20, LIGHTGRAY);
+        DrawText("CONTROLES:", leftX, posY + 230, 22, YELLOW);
+        DrawText("Nas telas de menu:", leftX, posY + 260, 18, LIGHTGRAY);
+        DrawText("W - Ir para a opção de cima", leftX + 20, posY + 280, 18, RAYWHITE);
+        DrawText("S - Ir para a opção de baixo", leftX + 20, posY + 300, 18, RAYWHITE);
+        DrawText("ENTER - Selecionar opção", leftX + 20, posY + 320, 18, RAYWHITE);
+        DrawText("ESC - Voltar para a tela anterior", leftX + 20, posY + 340, 18, RAYWHITE);
 
-        // Mensagem piscando
-        const char *msg = "Pressione ESC ou ENTER para voltar";
+        DrawText("Nas telas de jogo:", leftX, posY + 370, 18, LIGHTGRAY);
+        DrawText("W - Mover o peixe para cima", leftX + 20, posY + 390, 18, RAYWHITE);
+        DrawText("S - Mover o peixe para baixo", leftX + 20, posY + 410, 18, RAYWHITE);
+        DrawText("D - Mover o peixe para direita", leftX + 20, posY + 430, 18, RAYWHITE);
+        DrawText("Esc - Sair do nível", leftX + 20, posY + 450, 18, RAYWHITE);
+
+        // ---------------- LADO DIREITO ----------------
+        int rightX = game->screenWidth / 2 + 180; // desloca pro lado direito
+
+        // Sistema de vidas
+        DrawText("SISTEMA DE VIDAS:", rightX, posY + 230, 22, YELLOW);
+        DrawText("Cada nível começa com 3 vidas.", rightX, posY + 260, 18, RAYWHITE);
+        DrawText("Ao perdê-las, você reinicia o nível com vidas restauradas.",
+                 rightX, posY + 280, 18, RAYWHITE);
+
+        // Obstáculos
+        DrawText("OBSTÁCULOS:", rightX, posY + 320, 22, YELLOW);
+        DrawText("Fixos: travam o personagem temporariamente.",
+                 rightX, posY + 350, 18, RAYWHITE);
+        DrawText("Móveis: retiram uma vida do personagem.",
+                 rightX, posY + 370, 18, RAYWHITE);
+
+        // Ranking
+        DrawText("RANKING:", rightX, posY + 410, 22, YELLOW);
+        DrawText("Pontuação definida por tempo e moedas coletadas.",
+                 rightX, posY + 440, 18, RAYWHITE);
+        DrawText("Todas as moedas possuem o mesmo valor.",
+                 rightX, posY + 460, 18, LIGHTGRAY);
+
+        // ---------------- MENSAGEM INFERIOR ----------------
+        const char *msg = "Pressione Esc para voltar";
         float alpha = (sin(GetTime() * 3) + 1) / 2;
         DrawText(msg,
                  game->screenWidth / 2 - MeasureText(msg, 18) / 2,
-                 game->screenHeight - 80, 18,
+                 game->screenHeight - 40, 18,
                  Fade(RAYWHITE, 0.6f + 0.4f * alpha));
     }
 
