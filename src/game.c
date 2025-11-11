@@ -10,13 +10,13 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.estado = MENU;
 
     // Grid
-    game.linhas = 4;
+    game.linhas = 7; // ⬅️ ALTERADO
     game.hudAltura = screenHeight * 0.15f;
     game.blocoTamanho = (screenHeight - game.hudAltura) / game.linhas;
     game.colunas = screenWidth / game.blocoTamanho;
 
     // Jogador
-    game.player.linha = 2;
+    game.player.linha = 3; // ⬅️ ALTERADO
     game.player.coluna = 0;
     game.player.blocoTamanho = game.blocoTamanho;
     game.player.areaY = game.hudAltura;
@@ -99,7 +99,7 @@ void UpdateGame(Game *game) {
 
         // Colisão com obstáculos
         if (CheckCollisionPlayerObstacle(&game->player, game->obstaculos, game->totalObstaculos)) {
-            game->player.linha = 2;
+            game->player.linha = 3; // ⬅️ ALTERADO
             game->player.coluna = 0;
         }
         // ESC volta à tela de seleção de nível
