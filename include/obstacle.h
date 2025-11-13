@@ -3,7 +3,16 @@
 
 #include "raylib.h"
 
-// Tipos de Obstáculos
+#define MAX_OBSTACLES 512
+#define MAX_WORLD_COLUMNS 512
+
+// Tipos de colunas (verticais)
+typedef enum {
+    COLUMN_SAFE,
+    COLUMN_SAND
+} ColumnType;
+
+// Tipos de obstáculos
 typedef enum {
     IMOVEL,
     MOVEL1,
@@ -11,19 +20,17 @@ typedef enum {
 } ObstacleType;
 
 typedef struct {
-    int linha;
-    int coluna;
+    int coluna;          // índice da coluna (vertical)
+    float linha;         // topo do obstáculo (em unidades de linha)
+    float altura;        // altura em blocos
     ObstacleType tipo;
-    float yOffset;
-    int sentido;
+    float velocidade;    // linhas por segundo
+    int sentido;         // 1 (descendo) ou -1 (subindo)
 } Obstacle;
 
-// Funções de Obstáculos
-void InitObstacles(Obstacle *obstaculos, int colunas, int linhas, int *total);
-void UpdateObstacles(Obstacle *obstaculos, int total, float blocoTamanho, float hudAltura, int linhas);
-void DrawObstacles(Obstacle *obstaculos, int total, float blocoTamanho, float hudAltura);
-
-// Colisão
+void InitObstacles(Obstacle *obstaculos, ColumnType *columnTypes, int worldColumns, int linhas, int *total);
+void UpdateObstacles(Obstacle *obstaculos, int total, int linhas);
+void DrawObstacles(Obstacle *obstaculos, int total, float blocoTamanho, float hudAltura, float cameraColumn, int screenWidth);
 int CheckCollisionPlayerObstacle(void *playerPtr, Obstacle *obstaculos, int total);
 
-#endif 
+#endif

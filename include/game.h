@@ -15,12 +15,10 @@ typedef enum {
 // Estrutura do jogador
 typedef struct {
     int linha;
-    int coluna;
+    float coluna;
     float blocoTamanho;
     float areaY;
 } Player;
-
-#define MAX_OBSTACLES 256
 
 // Estrutura principal do jogo
 typedef struct {
@@ -38,17 +36,23 @@ typedef struct {
 
     // Jogador
     Player player;
-    Texture2D playerTexture;      // Sprite do jogador (96x96 PNG)
-    Texture2D backgroundTexture;  // Textura de fundo (menu/seleção)
+    Texture2D playerTexture;
+    Texture2D backgroundTexture;
     int menuSelecionado;
     int nivelSelecionado;
 
     // Vidas
-    int vidas; // 3 por nível
+    int vidas;
 
     // Obstáculos
     Obstacle obstaculos[MAX_OBSTACLES];
     int totalObstaculos;
+
+    // Mundo horizontal
+    int worldColumns;
+    float cameraColumn;
+    float playerColumnOffset;
+    ColumnType columnTypes[MAX_WORLD_COLUMNS];
 
 } Game;
 
