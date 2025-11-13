@@ -6,27 +6,55 @@
 #define MAX_OBSTACLES 512
 #define MAX_WORLD_COLUMNS 512
 
-// Tipos de colunas (verticais)
+/*Tipos de colunas (verticais) --- ver dps com os sprites
 typedef enum {
     COLUMN_SAFE,
     COLUMN_SAND
-} ColumnType;
+} ColumnType; */
 
-// Tipos de obstáculos
+// ------------------------------------------------------------
+// Tipos de Obstáculos (fixos e móveis)
+// ------------------------------------------------------------
 typedef enum {
-    IMOVEL,
-    MOVEL1,
-    MOVEL2
-} ObstacleType;
+    // Obstáculos FIXOS
+    OBSTACULO_PEDRA,
+    OBSTACULO_CORAL,
+    OBSTACULO_CONCHA,
+    OBSTACULO_ALGA,
 
+    // Obstáculos MÓVEIS
+    OBSTACULO_TUBARAO,
+    OBSTACULO_CARANGUEJO,
+    OBSTACULO_AGUA_VIVA,
+    OBSTACULO_BALEIA
+
+} ObstaculoTipo;
+
+// ------------------------------------------------------------
+// Estrutura completa de um único obstáculo
+// ------------------------------------------------------------
 typedef struct {
-    int coluna;          // índice da coluna (vertical)
-    float linha;         // topo do obstáculo (em unidades de linha)
-    float altura;        // altura em blocos
-    ObstacleType tipo;
-    float velocidade;    // linhas por segundo
-    int sentido;         // 1 (descendo) ou -1 (subindo)
+    ObstaculoTipo tipo;    // Tipo do obstáculo (pedra, coral, tubarão...)
+
+    // ---- Posição no mundo (em pixels) ----
+    float x;               // coordenada X real
+    float y;               // coordenada Y real
+
+    // ---- Tamanho do sprite / hitbox ----
+    float largura;         // largura em pixels
+    float altura;          // altura em pixels
+    Rectangle hitbox;      // hitbox real usado nas colisões
+
+    // ---- Visual ----
+    Texture2D textura;     // textura correspondente ao tipo
+
+    // ---- Movimento (apenas para os móveis) ----
+    float velocidade;      // 0 para fixo, >0 para móvel
+    int direcao;           // +1 para direita, -1 para esquerda
+
 } Obstacle;
+
+
 
 void InitObstacles(Obstacle *obstaculos, ColumnType *columnTypes, int worldColumns, int linhas, int *total);
 void UpdateObstacles(Obstacle *obstaculos, int total, int linhas);
