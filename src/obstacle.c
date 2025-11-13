@@ -1,30 +1,47 @@
 #include "obstacle.h"
 #include "game.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-// Inicializa obstáculos em colunas fixas sem aleatoriedade
+// Inicializa obstáculos com aleatoriedade
 void InitObstacles(Obstacle *obstaculos, int colunas, int linhas, int *total) {
+    static int seeded = 0;
+    if (!seeded) { srand((unsigned int)time(NULL)); seeded = 1; }
+
     int idx = 0;
 
-    for (int c = 0; c < colunas; c++) {
-        if (c == 0) continue; // primeira coluna segura
+    // Começa da coluna 1 (coluna 0 é segura para o spawn do jogador)
+    for (int c = 1; c < colunas; c++) {
+        if (idx >= MAX_OBSTACLES) break;
 
+        // Chance de não ter obstáculo nessa coluna (para garantir caminhos)
+        int roll = rand() % 100;
+        if (roll < 35) continue; // ~35% de coluna vazia
+
+        // Sorteia o tipo (ponderado)
         ObstacleType tipo;
-        switch (c % 3) {
-            case 1: tipo = IMOVEL; break;
-            case 2: tipo = MOVEL2; break;
-            default: tipo = MOVEL1; break;
-        }
+        int t = rand() % 100;
+        if (t < 40) tipo = IMOVEL;        // 40%
+        else if (t < 75) tipo = MOVEL1;   // 35%
+        else tipo = MOVEL2;               // 25%
 
-        int qtd = (tipo == MOVEL2) ? 2 : 1;
-        for (int i = 0; i < qtd; i++) {
-            obstaculos[idx].tipo = tipo;
-            obstaculos[idx].coluna = c;
-            obstaculos[idx].linha = i; // posição inicial pré-definida
-            obstaculos[idx].yOffset = 0;
-            obstaculos[idx].sentido = 1;
-            idx++;
-        }
+        // Altura em blocos
+        int altura = (tipo == MOVEL2 ? 2 : 1);
+        int linhaMaxStart = (linhas - altura);
+        if (linhaMaxStart < 0) linhaMaxStart = 0;
+
+        // Posição inicial aleatória
+        int linha = (linhaMaxStart > 0) ? (rand() % (linhaMaxStart + 1)) : 0;
+
+        // Cria um único obstáculo por coluna
+        obstaculos[idx].tipo = tipo;
+        obstaculos[idx].coluna = c;
+        obstaculos[idx].linha = linha;
+        obstaculos[idx].yOffset = 0.0f;
+        obstaculos[idx].sentido = 1;
+
+        idx++;
     }
 
     *total = idx;
@@ -66,7 +83,7 @@ void DrawObstacles(Obstacle *obstaculos, int total, float blocoTamanho, float hu
     }
 }
 
-// Verifica colisão jogador-obstáculo
+// Verifica colisão jogador-obstáculo (por grid)
 int CheckCollisionPlayerObstacle(void *playerPtr, Obstacle *obstaculos, int total) {
     Player *player = (Player *)playerPtr;
 

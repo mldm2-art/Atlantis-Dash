@@ -26,4 +26,4 @@ void DrawObstacles(Obstacle *obstaculos, int total, float blocoTamanho, float hu
 // Colisão
 int CheckCollisionPlayerObstacle(void *playerPtr, Obstacle *obstaculos, int total);
 
-#endif
+#endif 

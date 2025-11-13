@@ -10,28 +10,29 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.estado = MENU;
 
     // Grid
-    game.linhas = 7; // ⬅️ ALTERADO
+    game.linhas = 7;
     game.hudAltura = screenHeight * 0.15f;
     game.blocoTamanho = (screenHeight - game.hudAltura) / game.linhas;
     game.colunas = screenWidth / game.blocoTamanho;
 
     // Jogador
-    game.player.linha = 3; // ⬅️ ALTERADO
+    game.player.linha = 3;
     game.player.coluna = 0;
     game.player.blocoTamanho = game.blocoTamanho;
     game.player.areaY = game.hudAltura;
 
-    // Carrega sprite do jogador
-    game.playerTexture = LoadTexture("assets/imgs/personagemsprite.png");
+    // Vidas
+    game.vidas = 3;
 
-    // ALTERAÇÃO: Carrega a textura de fundo
+    // Texturas
+    game.playerTexture = LoadTexture("assets/imgs/personagemsprite.png");
     game.backgroundTexture = LoadTexture("assets/imgs/menu_jogo.png");
 
-    // Menu
+    // Menus
     game.menuSelecionado = 0;
     game.nivelSelecionado = 0;
 
-    // Obstáculos
+    // Obstáculos (serão re-sorteados ao iniciar o nível)
     InitObstacles(game.obstaculos, game.colunas, game.linhas, &game.totalObstaculos);
 
     return game;
@@ -58,32 +59,31 @@ void UpdateGame(Game *game) {
         if (IsKeyPressed(KEY_S) && game->menuSelecionado < 1) game->menuSelecionado++;
         if (IsKeyPressed(KEY_ENTER)) {
             if (game->menuSelecionado == 0) game->estado = SELECAO_NIVEL;
-            else if(game->menuSelecionado == 1) game->estado = INSTRUCOES;
+            else if (game->menuSelecionado == 1) game->estado = INSTRUCOES;
         }
     }
 
-        // ---------------- INSTRUÇÕES ----------------
+    // ---------------- INSTRUÇÕES ----------------
     else if (game->estado == INSTRUCOES) {
-        // Volta para o menu ao apertar ESC ou ENTER
         if (IsKeyPressed(KEY_ESCAPE)) {
             game->estado = MENU;
         }
     }
 
-        // ---------------- SELEÇÃO DE NÍVEL ----------------
+    // ---------------- SELEÇÃO DE NÍVEL ----------------
     else if (game->estado == SELECAO_NIVEL) {
-        // Navega entre os 4 níveis
         if (IsKeyPressed(KEY_W) && game->nivelSelecionado > 0) game->nivelSelecionado--;
         if (IsKeyPressed(KEY_S) && game->nivelSelecionado < 3) game->nivelSelecionado++;
 
-        // ENTER inicia o jogo com o nível selecionado
         if (IsKeyPressed(KEY_ENTER)) {
+            // Inicia o nível: reseta vidas, player e sorteia obstáculos
             game->estado = JOGANDO;
-            // Aqui no futuro você pode configurar a dificuldade de acordo com o nível
-            // Exemplo: ajustar velocidade de obstáculos, quantidade, etc.
+            game->vidas = 3;
+            game->player.linha = 3;
+            game->player.coluna = 0;
+            InitObstacles(game->obstaculos, game->colunas, game->linhas, &game->totalObstaculos);
         }
 
-        // Tecla ESC volta ao menu
         if (IsKeyPressed(KEY_ESCAPE)) {
             game->estado = MENU;
         }
@@ -94,15 +94,28 @@ void UpdateGame(Game *game) {
         if (IsKeyPressed(KEY_W) && game->player.linha > 0) game->player.linha--;
         if (IsKeyPressed(KEY_S) && game->player.linha < game->linhas - 1) game->player.linha++;
         if (IsKeyPressed(KEY_D) && game->player.coluna < game->colunas - 1) game->player.coluna++;
+        // (opcional) tecla A para esquerda
 
         UpdateObstacles(game->obstaculos, game->totalObstaculos, game->blocoTamanho, game->hudAltura, game->linhas);
 
-        // Colisão com obstáculos
+        // Colisão com obstáculos: perde vida
         if (CheckCollisionPlayerObstacle(&game->player, game->obstaculos, game->totalObstaculos)) {
-            game->player.linha = 3; // ⬅️ ALTERADO
-            game->player.coluna = 0;
+            if (game->vidas > 0) game->vidas--;
+
+            if (game->vidas > 0) {
+                // Reposiciona e segue
+                game->player.linha = 3;
+                game->player.coluna = 0;
+            } else {
+                // Zera vidas: reinicia o nível com novas posições
+                game->vidas = 3;
+                game->player.linha = 3;
+                game->player.coluna = 0;
+                InitObstacles(game->obstaculos, game->colunas, game->linhas, &game->totalObstaculos);
+            }
         }
-        // ESC volta à tela de seleção de nível
+
+        // ESC volta à seleção de nível
         if (IsKeyPressed(KEY_ESCAPE)) {
             game->estado = SELECAO_NIVEL;
         }
@@ -111,14 +124,9 @@ void UpdateGame(Game *game) {
 
 void DrawGame(Game *game) {
     BeginDrawing();
-    
-    // ALTERAÇÃO: Movido o ClearBackground para dentro dos estados que
-    // não usam a textura de fundo.
-    // ClearBackground((Color){10, 30, 60, 255}); // fundo azul oceânico (MOVIDO)
 
     // ---------------- MENU ----------------
     if (game->estado == MENU) {
-        // ALTERAÇÃO: Desenha a textura de fundo esticada para a tela
         DrawTexturePro(
             game->backgroundTexture,
             (Rectangle){ 0, 0, game->backgroundTexture.width, game->backgroundTexture.height },
@@ -159,29 +167,26 @@ void DrawGame(Game *game) {
         DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.6f + 0.4f * alphaMsg));
     }
 
-            // ---------------- INSTRUÇÕES ----------------
+    // ---------------- INSTRUÇÕES ----------------
     else if (game->estado == INSTRUCOES) {
-        // Este estado mantém seu fundo sólido
-        ClearBackground((Color){5, 25, 45, 255}); // Fundo azul escuro oceânico
+        ClearBackground((Color){5, 25, 45, 255});
 
         int w = game->screenWidth;
         int h = game->screenHeight;
-        int margin = w * 0.05; // margem lateral proporcional
 
         const char *titulo = "INSTRUCOES DO JOGO";
         DrawText(titulo,
                  w / 2 - MeasureText(titulo, h * 0.05) / 2,
                  h * 0.08, h * 0.05, SKYBLUE);
 
-        // ---------------- INTRODUÇÃO ----------------
-        int fontSize = h * 0.022;
-        int posY = h * 0.18;
+        int fontSize = (int)(h * 0.022f);
+        int posY = (int)(h * 0.18f);
 
         const char *intro[] = {
-            "Bem-vindo às profundezas de Atlantis Dash! 🌊",
-            "Você é um pequeno peixe em uma jornada pelos mares de Atlântida.",
-            "Seu objetivo é atravessar o oceano em segurança, desviando de corais, tubarões e outros perigos.",
-            "Mantenha-se em movimento e veja até onde você consegue chegar!"
+            "Bem-vindo as profundezas de Atlantis Dash!",
+            "Voce e um pequeno peixe em uma jornada pelos mares de Atlantida.",
+            "Desvie de corais, tubaroes e outros perigos.",
+            "Mantenha-se em movimento e veja ate onde voce chega!"
         };
 
         for (int i = 0; i < 4; i++) {
@@ -191,27 +196,17 @@ void DrawGame(Game *game) {
                      fontSize, RAYWHITE);
         }
 
-        // ---------------- COLUNAS ----------------
-        int leftX = w * 0.015;   // empurra a coluna esquerda mais pra borda
-        int rightX = w * 0.65;  // empurra a coluna direita mais pra direita
+        int leftX = (int)(w * 0.015f);
+        int rightX = (int)(w * 0.65f);
 
-
-        int baseY = h * 0.42;
+        int baseY = (int)(h * 0.42f);
         int line = fontSize + 6;
 
-        // 🟦 OBJETIVO
         DrawText("OBJETIVO PRINCIPAL:", leftX, baseY, fontSize + 4, YELLOW);
         DrawText("Chegue ao final dos quatro niveis desviando de obstaculos e inimigos",
                  leftX, baseY + line, fontSize, RAYWHITE);
-        DrawText("enquanto coleta moedas.O jogador vence ao completar os niveis, e o",
-                 leftX, baseY + 2 * line, fontSize, RAYWHITE);
-        DrawText("ranking e definido por tempo e moedas coletadas.",
-                 leftX, baseY + 3 * line, fontSize, RAYWHITE);
-        DrawText("OBS: Cada nivel e desbloqueado apenas apos concluir o anterior.",
-                 leftX, baseY + 4 * line, fontSize, LIGHTGRAY);
-        
+        DrawText("enquanto coleta moedas.", leftX, baseY + 2 * line, fontSize, RAYWHITE);
 
-        // 🎮 CONTROLES
         int controlsY = baseY + 6 * line;
         DrawText("CONTROLES:", leftX, controlsY, fontSize + 4, YELLOW);
         DrawText("Nas telas de menu:", leftX, controlsY + line, fontSize, LIGHTGRAY);
@@ -226,40 +221,21 @@ void DrawGame(Game *game) {
         DrawText("D - Mover o peixe para direita", leftX + 20, controlsY + 10 * line, fontSize, RAYWHITE);
         DrawText("ESC - Sair do nivel", leftX + 20, controlsY + 11 * line, fontSize, RAYWHITE);
 
-        // 🧡 VIDA / OBSTÁCULOS / RANKING no lado direito
         int infoY = baseY;
         DrawText("SISTEMA DE VIDAS:", rightX, infoY, fontSize + 4, YELLOW);
-        DrawText("Cada nivel comeca com 3 vidas.", rightX, infoY + line, fontSize, RAYWHITE);
-        DrawText("Ao perde-las, voce reinicia o nivel com vidas restauradas.",
-                 rightX, infoY + 2 * line, fontSize, RAYWHITE);
-
-        infoY += 5 * line;
-        DrawText("OBSTACULOS:", rightX, infoY, fontSize + 4, YELLOW);
-        DrawText("Fixos: travam o personagem temporariamente.",
+        DrawText("Cada nivel comeca com 3 vidas. Ao colidir, voce perde 1.",
                  rightX, infoY + line, fontSize, RAYWHITE);
-        DrawText("Moveis: retiram uma vida do personagem.",
-                 rightX, infoY + 2 * line, fontSize, RAYWHITE);
 
-        infoY += 5 * line;
-        DrawText("RANKING:", rightX, infoY, fontSize + 4, YELLOW);
-        DrawText("Pontuacao = tempo + moedas coletadas.",
-                 rightX, infoY + line, fontSize, RAYWHITE);
-        DrawText("Todas as moedas possuem o mesmo valor.",
-                 rightX, infoY + 2 * line, fontSize, LIGHTGRAY);
-
-        // 🕹️ MENSAGEM INFERIOR
         const char *msg = "Pressione ESC para voltar";
         float alpha = (sin(GetTime() * 3) + 1) / 2;
         DrawText(msg,
                  w / 2 - MeasureText(msg, fontSize) / 2,
-                 h - h * 0.08, fontSize,
+                 (int)(h - h * 0.08f), fontSize,
                  Fade(RAYWHITE, 0.6f + 0.4f * alpha));
     }
 
-    
     // ---------------- SELEÇÃO DE NÍVEL ----------------
     else if (game->estado == SELECAO_NIVEL) {
-        // ALTERAÇÃO: Desenha a textura de fundo esticada para a tela
         DrawTexturePro(
             game->backgroundTexture,
             (Rectangle){ 0, 0, game->backgroundTexture.width, game->backgroundTexture.height },
@@ -304,12 +280,12 @@ void DrawGame(Game *game) {
 
     // ---------------- JOGANDO ----------------
     else if (game->estado == JOGANDO) {
-        // ALTERAÇÃO: Fundo sólido apenas para o estado JOGANDO
-        ClearBackground((Color){10, 30, 60, 255}); 
+        ClearBackground((Color){10, 30, 60, 255});
 
         // HUD
         DrawRectangle(0, 0, game->screenWidth, game->hudAltura, (Color){20, 50, 80, 255});
         DrawText(TextFormat("Nivel %d", game->nivelSelecionado + 1), 10, 10, 20, RAYWHITE);
+        DrawText(TextFormat("Vidas: %d", game->vidas), 150, 10, 20, RAYWHITE);
 
         // Grid
         for (int l = 0; l < game->linhas; l++) {
@@ -327,7 +303,7 @@ void DrawGame(Game *game) {
         // Obstáculos
         DrawObstacles(game->obstaculos, game->totalObstaculos, game->blocoTamanho, game->hudAltura);
 
-        // ✅ Jogador com sprite
+        // Jogador (sprite)
         float px = game->player.coluna * game->blocoTamanho + game->blocoTamanho / 4;
         float py = game->hudAltura + game->player.linha * game->blocoTamanho + game->blocoTamanho / 4;
 
@@ -335,7 +311,7 @@ void DrawGame(Game *game) {
             game->playerTexture,
             (Vector2){ px, py },
             0.0f,
-            game->blocoTamanho / 96.0f, // escala baseada no tamanho original do sprite
+            game->blocoTamanho / 96.0f,
             WHITE
         );
     }
@@ -343,11 +319,7 @@ void DrawGame(Game *game) {
     EndDrawing();
 }
 
-// Libera os recursos do jogo
-
 void UnloadGame(Game *game) {
     UnloadTexture(game->playerTexture);
-    
-    // ALTERAÇÃO: Descarrega a textura de fundo
     UnloadTexture(game->backgroundTexture);
 }

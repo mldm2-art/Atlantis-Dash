@@ -22,8 +22,8 @@ int main(void) {
         DrawGame(&game);
     }
 
-    // Libera a textura antes de fechar
-    UnloadTexture(game.playerTexture);
+    // Libera todos os recursos do jogo (texturas etc.)
+    UnloadGame(&game);
 
     CloseAudioDevice();
     CloseWindow();

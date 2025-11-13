@@ -38,10 +38,13 @@ typedef struct {
 
     // Jogador
     Player player;
-    Texture2D playerTexture;   // ✅ Sprite do jogador (96x96 PNG)
-    Texture2D backgroundTexture;    // Menu e seleção
+    Texture2D playerTexture;      // Sprite do jogador (96x96 PNG)
+    Texture2D backgroundTexture;  // Textura de fundo (menu/seleção)
     int menuSelecionado;
     int nivelSelecionado;
+
+    // Vidas
+    int vidas; // 3 por nível
 
     // Obstáculos
     Obstacle obstaculos[MAX_OBSTACLES];
@@ -53,6 +56,6 @@ typedef struct {
 Game InitGame(int screenWidth, int screenHeight);
 void UpdateGame(Game *game);
 void DrawGame(Game *game);
-void UnloadGame(Game *game); // ✅ nova função para liberar a textura
+void UnloadGame(Game *game);
 
 #endif
