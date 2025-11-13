@@ -135,13 +135,13 @@ void DrawGame(Game *game) {
             WHITE
         );
 
-        const char *titulo = "ATLANTIS DASH";
+        const char *titulo = "ATLANTIS-DASH";
         DrawText(titulo, game->screenWidth / 2 - MeasureText(titulo, 60) / 2, 120, 60, SKYBLUE);
 
         float brilho = (sin(GetTime() * 2) + 1) * 0.5f;
         DrawText(titulo, game->screenWidth / 2 - MeasureText(titulo, 60) / 2, 120, 60, Fade(WHITE, 0.4f + 0.4f * brilho));
 
-        const char *opcoes[2] = {"Jogar", "Instrucoes do jogo"};
+        const char *opcoes[2] = {"Jogar", "Instruções do jogo"};
         int tamanhoFonte = 30;
         int espacamento = 70;
         int baseY = game->screenHeight / 2 - espacamento / 2;
@@ -172,7 +172,7 @@ void DrawGame(Game *game) {
         int w = game->screenWidth;
         int h = game->screenHeight;
 
-        const char *titulo = "INSTRUCOES DO JOGO";
+        const char *titulo = "INSTRUÇÕES DO JOGO";
         DrawText(titulo,
                  w / 2 - MeasureText(titulo, h * 0.05f) / 2,
                  (int)(h * 0.08f), (int)(h * 0.05f), SKYBLUE);
@@ -181,10 +181,10 @@ void DrawGame(Game *game) {
         int posY = (int)(h * 0.18f);
 
         const char *intro[] = {
-            "Bem-vindo as profundezas de Atlantis Dash!",
-            "Nade entre corredores de areia e agua em Atlantida.",
-            "Desvie de peixes inimigos e corais enquanto avanca.",
-            "Use seus reflexos para chegar o mais longe possivel!"
+            "Bem-vindo às profundezas do Atlantis-Dash!",
+            "Nade entre corredores de areia e água em Atlântida.",
+            "Desvie de animais perigosos e corais enquanto avança.",
+            "Use seus reflexos para chegar o mais longe possível!"
         };
 
         for (int i = 0; i < 4; i++) {
@@ -194,17 +194,19 @@ void DrawGame(Game *game) {
                      fontSize, RAYWHITE);
         }
 
-        int leftX = (int)(w * 0.02f);
-        int rightX = (int)(w * 0.6f);
+        int leftX = (int)(w * 0.04f);
+        int rightX = (int)(w * 0.55f);
 
         int baseY = (int)(h * 0.42f);
         int line = fontSize + 6;
 
         DrawText("OBJETIVO PRINCIPAL:", leftX, baseY, fontSize + 4, YELLOW);
-        DrawText("Avance pelos tuneis de areia evitando peixes e corais perigosos.",
+        DrawText("Chegar vivo ao final de cada um dos quatro níveis, desviando de obstáculos",
                  leftX, baseY + line, fontSize, RAYWHITE);
-        DrawText("Nao e possivel voltar atras: pense rapido e siga em frente!",
+        DrawText("e inimigos enquanto coleta o maior número possível de moedas.",
                  leftX, baseY + 2 * line, fontSize, RAYWHITE);
+        DrawText("OBS: O próximo nível só será liberado quando o nível anterior for concluído.",
+                 leftX, baseY + 3 * line, fontSize, RAYWHITE);
 
         int controlsY = baseY + 5 * line;
         DrawText("CONTROLES:", leftX, controlsY, fontSize + 4, YELLOW);
@@ -227,11 +229,31 @@ void DrawGame(Game *game) {
         DrawText("Ao perder todas, voce retorna ao inicio do nivel.",
                  rightX, infoY + 2 * line, fontSize, RAYWHITE);
 
+        int ObstacleY = baseY + 5 * line;
+        DrawText("OBSTÁCULOS:", rightX, ObstacleY, fontSize + 4, YELLOW);
+        DrawText("No Atlantis-Dash existem dois tipos de obstáculos: os fixos e os móveis.",
+                 rightX, ObstacleY + line, fontSize, RAYWHITE);
+        DrawText("Ao colidir com um obstáculo fixo, o seu personagem não consegue avançar.",
+                 rightX, ObstacleY + 2 * line, fontSize, RAYWHITE);
+        DrawText("Já ao colidir com obstáculos móveis, o personagem perde uma vida.", 
+                 rightX, ObstacleY + 3 * line, fontSize, RAYWHITE);
+
+        int RankingY = baseY + 11 * line;
+        DrawText("RANKING:", rightX, RankingY, fontSize + 4, YELLOW);
+        DrawText("O ranking do jogo funcionará da seguinte forma:",
+                 rightX, RankingY + line, fontSize, RAYWHITE);
+        DrawText("Quanto menor o tempo que você completa os níveis e quanto mais moedas",
+                 rightX, RankingY + 2 * line, fontSize, RAYWHITE);
+        DrawText("você coleta, maior será sua pontuação naquele nível.", 
+                 rightX, RankingY + 3 * line, fontSize, RAYWHITE);
+        DrawText("OBS: todas as moedas possuem o mesmo valor de pontuação", 
+                 rightX, RankingY + 4 * line, fontSize, RAYWHITE);
+
         const char *msg = "Pressione ESC para voltar";
         float alpha = (sin(GetTime() * 3) + 1) / 2;
         DrawText(msg,
                  w / 2 - MeasureText(msg, fontSize) / 2,
-                 (int)(h - h * 0.08f), fontSize,
+                 (int)(h - h * 0.06f), fontSize,
                  Fade(RAYWHITE, 0.6f + 0.4f * alpha));
     }
 
