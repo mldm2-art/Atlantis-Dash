@@ -1,63 +1,71 @@
 #include "game.h"
-#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <math.h>
 
-static void GenerateColumnPattern(Game *game);
-static void ClampCamera(Game *game);
-static void UpdatePlayerColumn(Game *game);
+// Funções internas (estáticas)
 static void ResetPlayer(Game *game);
+static void UpdatePlayer(Game *game);
+static void GenerateWorldForLevel(Game *game);
+static void SpawnColumn(Game *game, int worldColumnIndex);
 
+// ------------------------
+// Inicialização do jogo
+// ------------------------
 Game InitGame(int screenWidth, int screenHeight) {
     Game game = {0};
+
+    srand((unsigned int)time(NULL));
 
     game.screenWidth = screenWidth;
     game.screenHeight = screenHeight;
     game.estado = MENU;
 
+    // Grid vertical: 7 linhas
     game.linhas = 7;
     game.hudAltura = screenHeight * 0.15f;
     game.blocoTamanho = (screenHeight - game.hudAltura) / game.linhas;
-    game.colunas = screenWidth / game.blocoTamanho;
 
-    game.worldColumns = 200;
-    game.cameraColumn = 0.0f;
-    game.playerColumnOffset = 2.0f;
+    // Mundo em colunas
+    game.numColunasVisiveis = 7;                      // 7 colunas visíveis
+    game.colunaLargura = (float)screenWidth / game.numColunasVisiveis;
+    game.worldColumns = 100;                          // nível com 100 colunas de mundo
 
-    GenerateColumnPattern(&game);
+    game.cameraX = 0.0f;
+    game.velocidadeScroll = 200.0f;                   // pixels por segundo
 
+    // Player
     game.player.blocoTamanho = game.blocoTamanho;
-    game.player.areaY = game.hudAltura;
+    game.player.largura = game.blocoTamanho * 0.5f;
+    game.player.altura  = game.blocoTamanho * 0.5f;
 
-    game.playerTexture     = LoadTexture("assets/imgs/personagemsprite.png");
-    game.backgroundTexture = LoadTexture("assets/imgs/menu_jogo.png");
+    // Texturas
+    game.playerTexture       = LoadTexture("assets/imgs/personagemsprite.png");
+    game.backgroundTexture   = LoadTexture("assets/imgs/menu_jogo.png");
+    game.seletorNivelBackground = game.backgroundTexture; // por enquanto igual
 
+    // Menus / HUD
     game.menuSelecionado = 0;
     game.nivelSelecionado = 0;
     game.vidas = 3;
+    game.pontuacao = 0;
+    game.moedasColetadas = 0;
+
+    // Obstáculos
+    game.obstaculos = NULL;
+    game.primeiraColuna = 0;
+    game.proximaColuna = 0;
 
     ResetPlayer(&game);
-
-    InitObstacles(game.obstaculos, game.columnTypes, game.worldColumns, game.linhas, &game.totalObstaculos);
 
     return game;
 }
 
+// ------------------------
+// Atualização
+// ------------------------
 void UpdateGame(Game *game) {
-    int newWidth = GetScreenWidth();
-    int newHeight = GetScreenHeight();
-
-    if (newWidth != game->screenWidth || newHeight != game->screenHeight) {
-        game->screenWidth = newWidth;
-        game->screenHeight = newHeight;
-        game->hudAltura = newHeight * 0.15f;
-        game->blocoTamanho = (newHeight - game->hudAltura) / game->linhas;
-        game->colunas = newWidth / game->blocoTamanho;
-        game->player.blocoTamanho = game->blocoTamanho;
-        game->player.areaY = game->hudAltura;
-        ClampCamera(game);
-        UpdatePlayerColumn(game);
-    }
-
+    // (por enquanto ignorando resize pra não complicar colunas)
     if (game->estado == MENU) {
         if (IsKeyPressed(KEY_W) && game->menuSelecionado > 0) game->menuSelecionado--;
         if (IsKeyPressed(KEY_S) && game->menuSelecionado < 1) game->menuSelecionado++;
@@ -66,13 +74,11 @@ void UpdateGame(Game *game) {
             else if (game->menuSelecionado == 1) game->estado = INSTRUCOES;
         }
     }
-
     else if (game->estado == INSTRUCOES) {
         if (IsKeyPressed(KEY_ESCAPE)) {
             game->estado = MENU;
         }
     }
-
     else if (game->estado == SELECAO_NIVEL) {
         if (IsKeyPressed(KEY_W) && game->nivelSelecionado > 0) game->nivelSelecionado--;
         if (IsKeyPressed(KEY_S) && game->nivelSelecionado < 3) game->nivelSelecionado++;
@@ -80,48 +86,88 @@ void UpdateGame(Game *game) {
         if (IsKeyPressed(KEY_ENTER)) {
             game->estado = JOGANDO;
             game->vidas = 3;
+
+            GenerateWorldForLevel(game);
             ResetPlayer(game);
-            InitObstacles(game->obstaculos, game->columnTypes, game->worldColumns, game->linhas, &game->totalObstaculos);
         }
 
         if (IsKeyPressed(KEY_ESCAPE)) {
             game->estado = MENU;
         }
     }
-
     else if (game->estado == JOGANDO) {
-        if (IsKeyPressed(KEY_W) && game->player.linha > 0) game->player.linha--;
-        if (IsKeyPressed(KEY_S) && game->player.linha < game->linhas - 1) game->player.linha++;
+        float delta = GetFrameTime(); 
+         // Player só sobe/desce por blocos
+        UpdatePlayer(game);
 
-        const float scrollSpeed = 5.0f; // colunas por segundo
-        if (IsKeyDown(KEY_D)) {
-            game->cameraColumn += scrollSpeed * GetFrameTime();
+        // Scroll em BLOCOS na horizontal: cada D = 1 coluna
+        if (IsKeyPressed(KEY_D)) {
+            game->cameraX += game->colunaLargura;
+
+            // opcional: impede de passar muito do fim do nível
+            float fimNivelX = game->worldColumns * game->colunaLargura;
+            if (game->cameraX > fimNivelX)
+            game->cameraX = fimNivelX;
+        }
+        float limiteRemocao = (game->primeiraColuna + 1) * game->colunaLargura;
+
+        while (game->cameraX >= limiteRemocao) {
+            // remove obstáculos totalmente atrás da câmera
+            RemoveObstaclesLeftOf(&game->obstaculos, game->cameraX);
+
+            // avançamos a coluna mais à esquerda
+            game->primeiraColuna++;
+
+            // se ainda temos colunas de mundo para gerar à direita, gera mais
+            if (game->proximaColuna < game->worldColumns) {
+                SpawnColumn(game, game->proximaColuna);
+                game->proximaColuna++;
+            }
+
+            limiteRemocao = (game->primeiraColuna + 1) * game->colunaLargura;
         }
 
-        ClampCamera(game);
-        UpdatePlayerColumn(game);
+        // Atualiza movimento vertical dos móveis
+        UpdateObstacles(game->obstaculos, delta, game->hudAltura, (float)game->screenHeight);
 
-        UpdateObstacles(game->obstaculos, game->totalObstaculos, game->linhas);
+        // Atualiza hitbox do player em COORDENADAS DE MUNDO
+        game->player.hitbox.x = game->player.x + game->cameraX; // mundo = tela + camera
+        game->player.hitbox.y = game->player.y;
+        game->player.hitbox.width  = game->player.largura;
+        game->player.hitbox.height = game->player.altura;
 
-        if (CheckCollisionPlayerObstacle(&game->player, game->obstaculos, game->totalObstaculos)) {
+        // Colisão
+        if (CheckCollisionPlayerObstacles(game->player.hitbox, game->obstaculos)) {
             if (game->vidas > 0) game->vidas--;
 
             if (game->vidas > 0) {
                 ResetPlayer(game);
             } else {
                 game->vidas = 3;
+                GenerateWorldForLevel(game);
                 ResetPlayer(game);
-                InitObstacles(game->obstaculos, game->columnTypes, game->worldColumns, game->linhas, &game->totalObstaculos);
             }
+        }
+
+        // Fim do nível: câmera passou da última coluna de mundo
+        float fimNivelX = game->worldColumns * game->colunaLargura;
+        if (game->cameraX >= fimNivelX) {
+            game->estado = SELECAO_NIVEL;
+            DestroyObstacleList(&game->obstaculos);
+            ResetPlayer(game);
         }
 
         if (IsKeyPressed(KEY_ESCAPE)) {
             game->estado = SELECAO_NIVEL;
+            DestroyObstacleList(&game->obstaculos);
             ResetPlayer(game);
         }
     }
 }
 
+// ------------------------
+// Desenho
+// ------------------------
 void DrawGame(Game *game) {
     BeginDrawing();
 
@@ -141,7 +187,7 @@ void DrawGame(Game *game) {
         float brilho = (sin(GetTime() * 2) + 1) * 0.5f;
         DrawText(titulo, game->screenWidth / 2 - MeasureText(titulo, 60) / 2, 120, 60, Fade(WHITE, 0.4f + 0.4f * brilho));
 
-        const char *opcoes[2] = {"Jogar", "Instruções do jogo"};
+        const char *opcoes[2] = {"Jogar", "Instrucoes do jogo"};
         int tamanhoFonte = 30;
         int espacamento = 70;
         int baseY = game->screenHeight / 2 - espacamento / 2;
@@ -165,14 +211,14 @@ void DrawGame(Game *game) {
         float alphaMsg = (sin(GetTime() * 3) + 1) / 2;
         DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.6f + 0.4f * alphaMsg));
     }
-
     else if (game->estado == INSTRUCOES) {
+        // Seu texto de instruções antigo
         ClearBackground((Color){5, 25, 45, 255});
 
         int w = game->screenWidth;
         int h = game->screenHeight;
 
-        const char *titulo = "INSTRUÇÕES DO JOGO";
+        const char *titulo = "INSTRUCOES DO JOGO";
         DrawText(titulo,
                  w / 2 - MeasureText(titulo, h * 0.05f) / 2,
                  (int)(h * 0.08f), (int)(h * 0.05f), SKYBLUE);
@@ -181,10 +227,10 @@ void DrawGame(Game *game) {
         int posY = (int)(h * 0.18f);
 
         const char *intro[] = {
-            "Bem-vindo às profundezas do Atlantis-Dash!",
-            "Nade entre corredores de areia e água em Atlântida.",
-            "Desvie de animais perigosos e corais enquanto avança.",
-            "Use seus reflexos para chegar o mais longe possível!"
+            "Bem-vindo as profundezas do Atlantis-Dash!",
+            "Nade entre corredores de areia e agua em Atlantida.",
+            "Desvie de animais perigosos e corais enquanto avanca.",
+            "Use seus reflexos para chegar o mais longe possivel!"
         };
 
         for (int i = 0; i < 4; i++) {
@@ -201,11 +247,11 @@ void DrawGame(Game *game) {
         int line = fontSize + 6;
 
         DrawText("OBJETIVO PRINCIPAL:", leftX, baseY, fontSize + 4, YELLOW);
-        DrawText("Chegar vivo ao final de cada um dos quatro níveis, desviando de obstáculos",
+        DrawText("Chegar vivo ao final de cada um dos quatro niveis, desviando de obstaculos",
                  leftX, baseY + line, fontSize, RAYWHITE);
-        DrawText("e inimigos enquanto coleta o maior número possível de moedas.",
+        DrawText("e inimigos enquanto coleta o maior numero possivel de moedas.",
                  leftX, baseY + 2 * line, fontSize, RAYWHITE);
-        DrawText("OBS: O próximo nível só será liberado quando o nível anterior for concluído.",
+        DrawText("OBS: O proximo nivel so sera liberado quando o nivel anterior for concluido.",
                  leftX, baseY + 3 * line, fontSize, RAYWHITE);
 
         int controlsY = baseY + 5 * line;
@@ -230,23 +276,23 @@ void DrawGame(Game *game) {
                  rightX, infoY + 2 * line, fontSize, RAYWHITE);
 
         int ObstacleY = baseY + 5 * line;
-        DrawText("OBSTÁCULOS:", rightX, ObstacleY, fontSize + 4, YELLOW);
-        DrawText("No Atlantis-Dash existem dois tipos de obstáculos: os fixos e os móveis.",
+        DrawText("OBSTACULOS:", rightX, ObstacleY, fontSize + 4, YELLOW);
+        DrawText("No Atlantis-Dash existem dois tipos de obstaculos: os fixos e os moveis.",
                  rightX, ObstacleY + line, fontSize, RAYWHITE);
-        DrawText("Ao colidir com um obstáculo fixo, o seu personagem não consegue avançar.",
+        DrawText("Ao colidir com um obstaculo fixo, o seu personagem nao consegue avancar.",
                  rightX, ObstacleY + 2 * line, fontSize, RAYWHITE);
-        DrawText("Já ao colidir com obstáculos móveis, o personagem perde uma vida.", 
+        DrawText("Ja ao colidir com obstaculos moveis, o personagem perde uma vida.",
                  rightX, ObstacleY + 3 * line, fontSize, RAYWHITE);
 
         int RankingY = baseY + 11 * line;
         DrawText("RANKING:", rightX, RankingY, fontSize + 4, YELLOW);
-        DrawText("O ranking do jogo funcionará da seguinte forma:",
+        DrawText("O ranking do jogo funcionara da seguinte forma:",
                  rightX, RankingY + line, fontSize, RAYWHITE);
-        DrawText("Quanto menor o tempo que você completa os níveis e quanto mais moedas",
+        DrawText("Quanto menor o tempo que voce completa os niveis e quanto mais moedas",
                  rightX, RankingY + 2 * line, fontSize, RAYWHITE);
-        DrawText("você coleta, maior será sua pontuação naquele nível.", 
+        DrawText("voce coleta, maior sera sua pontuacao naquele nivel.",
                  rightX, RankingY + 3 * line, fontSize, RAYWHITE);
-        DrawText("OBS: todas as moedas possuem o mesmo valor de pontuação", 
+        DrawText("OBS: todas as moedas possuem o mesmo valor de pontuacao",
                  rightX, RankingY + 4 * line, fontSize, RAYWHITE);
 
         const char *msg = "Pressione ESC para voltar";
@@ -256,11 +302,10 @@ void DrawGame(Game *game) {
                  (int)(h - h * 0.06f), fontSize,
                  Fade(RAYWHITE, 0.6f + 0.4f * alpha));
     }
-
     else if (game->estado == SELECAO_NIVEL) {
         DrawTexturePro(
-            game->backgroundTexture,
-            (Rectangle){0, 0, game->backgroundTexture.width, game->backgroundTexture.height},
+            game->seletorNivelBackground,
+            (Rectangle){0, 0, game->seletorNivelBackground.width, game->seletorNivelBackground.height},
             (Rectangle){0, 0, (float)game->screenWidth, (float)game->screenHeight},
             (Vector2){0, 0},
             0.0f,
@@ -299,10 +344,10 @@ void DrawGame(Game *game) {
         const char *msg = "ENTER para iniciar   |   ESC para voltar";
         DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.8f));
     }
-
     else if (game->estado == JOGANDO) {
         ClearBackground((Color){10, 30, 60, 255});
 
+        // HUD
         DrawRectangle(0, 0, game->screenWidth, game->hudAltura, (Color){20, 50, 80, 255});
         DrawText(TextFormat("Nivel %d", game->nivelSelecionado + 1), 10, 10, 20, RAYWHITE);
         DrawText(TextFormat("Vidas: %d", game->vidas), 150, 10, 20, RAYWHITE);
@@ -311,39 +356,36 @@ void DrawGame(Game *game) {
         Color waterColor = (Color){8, 24, 48, 255};
         Color gridColor  = (Color){0, 0, 50, 120};
 
-        int firstCol = (int)floorf(game->cameraColumn);
-        float frac = game->cameraColumn - (float)firstCol;
-        int visibleCols = (int)ceilf((float)game->screenWidth / game->blocoTamanho) + 2;
-        float totalHeight = game->linhas * game->blocoTamanho;
+        // Desenho das colunas de fundo (mar/areia) com scroll
+        float baseColuna = floorf(game->cameraX / game->colunaLargura);
+        int colunasDesenho = game->numColunasVisiveis + 2;
 
-        for (int i = 0; i < visibleCols; i++) {
-            int colIndex = firstCol + i;
-            if (colIndex < 0 || colIndex >= game->worldColumns) continue;
+        for (int i = 0; i < colunasDesenho; i++) {
+            int colIndex = (int)baseColuna + i;
+            float x = colIndex * game->colunaLargura - game->cameraX;
 
-            float x = ((float)i - frac) * game->blocoTamanho;
-            Color laneColor = (game->columnTypes[colIndex] == COLUMN_SAND) ? sandColor : waterColor;
-            DrawRectangleRec((Rectangle){x, game->hudAltura, game->blocoTamanho + 1.0f, totalHeight}, laneColor);
+            Color laneColor = (colIndex % 2 == 0) ? waterColor : sandColor;
+            DrawRectangle((int)x,
+                          (int)game->hudAltura,
+                          (int)ceilf(game->colunaLargura) + 1,
+                          (int)(game->screenHeight - game->hudAltura),
+                          laneColor);
         }
 
-        for (int i = 0; i <= visibleCols; i++) {
-            float x = ((float)i - frac) * game->blocoTamanho;
-            if (x < -game->blocoTamanho || x > game->screenWidth + game->blocoTamanho) continue;
-            DrawLine((int)x, (int)game->hudAltura, (int)x, (int)(game->hudAltura + totalHeight), gridColor);
-        }
-
+        // Linhas horizontais (grid)
         for (int r = 0; r <= game->linhas; r++) {
             float y = game->hudAltura + r * game->blocoTamanho;
             DrawLine(0, (int)y, game->screenWidth, (int)y, gridColor);
         }
 
-        DrawObstacles(game->obstaculos, game->totalObstaculos, game->blocoTamanho, game->hudAltura, game->cameraColumn, game->screenWidth);
+        // Obstáculos (com scroll)
+        DrawObstacles(game->obstaculos, game->cameraX, game->hudAltura,
+                      game->screenWidth, game->screenHeight);
 
-        float playerScreenX = (game->player.coluna - game->cameraColumn) * game->blocoTamanho + game->blocoTamanho * 0.25f;
-        float playerScreenY = game->hudAltura + game->player.linha * game->blocoTamanho + game->blocoTamanho * 0.25f;
-
+        // Player (usa posição de TELA)
         DrawTextureEx(
             game->playerTexture,
-            (Vector2){playerScreenX, playerScreenY},
+            (Vector2){game->player.x, game->player.y},
             0.0f,
             game->blocoTamanho / 96.0f,
             WHITE
@@ -353,48 +395,136 @@ void DrawGame(Game *game) {
     EndDrawing();
 }
 
+// ------------------------
+// Liberação
+// ------------------------
 void UnloadGame(Game *game) {
     UnloadTexture(game->playerTexture);
     UnloadTexture(game->backgroundTexture);
+    DestroyObstacleList(&game->obstaculos);
 }
 
-// ----------------------------------------------------------------
+// ------------------------
 // Helpers internos
-static void GenerateColumnPattern(Game *game) {
-    for (int c = 0; c < game->worldColumns; c++) {
-        if (c < 4) {
-            game->columnTypes[c] = COLUMN_SAFE;
-        } else {
-            int mod = c % 4;
-            game->columnTypes[c] = (mod < 2) ? COLUMN_SAFE : COLUMN_SAND;
-        }
-    }
-}
+// ------------------------
 
-static void ClampCamera(Game *game) {
-    float visibleCols = (float)game->screenWidth / game->blocoTamanho;
-    if (visibleCols < 1.0f) visibleCols = 1.0f;
-
-    float maxByView = (float)game->worldColumns - visibleCols;
-    float maxByPlayer = (float)game->worldColumns - (game->playerColumnOffset + 1.0f);
-    float maxCamera = fminf(maxByView, maxByPlayer);
-    if (maxCamera < 0.0f) maxCamera = 0.0f;
-
-    if (game->cameraColumn > maxCamera) game->cameraColumn = maxCamera;
-    if (game->cameraColumn < 0.0f) game->cameraColumn = 0.0f;
-}
-
-static void UpdatePlayerColumn(Game *game) {
-    game->player.coluna = game->cameraColumn + game->playerColumnOffset;
-    float maxCol = (float)game->worldColumns - 0.4f;
-    if (game->player.coluna > maxCol) game->player.coluna = maxCol;
-    if (game->player.coluna < 0.0f) game->player.coluna = 0.0f;
-}
-
+// Player sempre na coluna 1 da TELA (segunda coluna)
 static void ResetPlayer(Game *game) {
-    game->player.linha = game->linhas - 4;
-    if (game->player.linha < 0) game->player.linha = game->linhas - 1;
-    game->cameraColumn = 0.0f;
-    ClampCamera(game);
-    UpdatePlayerColumn(game);
+    int colunaPlayerTela = 1; // 0 = primeira, 1 = segunda
+    float colunaLarguraTela = (float)game->screenWidth / game->numColunasVisiveis;
+
+    float startX = colunaPlayerTela * colunaLarguraTela
+                 + (colunaLarguraTela - game->player.largura) * 0.5f;
+
+    float startY = game->hudAltura
+                 + (game->linhas / 2) * game->blocoTamanho
+                 - game->player.altura * 0.5f;
+
+    game->player.x = startX;
+    game->player.y = startY;
+
+    game->player.hitbox = (Rectangle){
+        game->player.x + game->cameraX, // mundo
+        game->player.y,
+        game->player.largura,
+        game->player.altura
+    };
+}
+
+// Player sobe/desce em blocos
+static void UpdatePlayer(Game *game) {
+    if (IsKeyPressed(KEY_W)) {
+        game->player.y -= game->player.blocoTamanho;
+    }
+    if (IsKeyPressed(KEY_S)) {
+        game->player.y += game->player.blocoTamanho;
+    }
+
+    float minY = game->hudAltura;
+    float maxY = game->hudAltura + (game->linhas - 1) * game->blocoTamanho;
+
+    if (game->player.y < minY) game->player.y = minY;
+    if (game->player.y > maxY) game->player.y = maxY;
+}
+
+// Gera colunas iniciais do nível
+static void GenerateWorldForLevel(Game *game) {
+    DestroyObstacleList(&game->obstaculos);
+
+    game->cameraX = 0.0f;
+    game->primeiraColuna = 0;
+
+    int colunasIniciais = game->numColunasVisiveis + 5;
+    if (colunasIniciais > game->worldColumns) {
+        colunasIniciais = game->worldColumns;
+    }
+
+    for (int c = 0; c < colunasIniciais; c++) {
+        SpawnColumn(game, c);
+    }
+
+    game->proximaColuna = colunasIniciais;
+}
+
+// Gera uma coluna do mundo (fixa ou móvel) no índice especificado
+static void SpawnColumn(Game *game, int worldColumnIndex) {
+    if (worldColumnIndex < 0 || worldColumnIndex >= game->worldColumns) return;
+
+    bool colunaMovel = (worldColumnIndex % 2 == 0); // par = mar (móveis), impar = areia (fixos)
+
+    float larguraBase = game->blocoTamanho * 0.8f;
+    float colunaX = worldColumnIndex * game->colunaLargura;
+    float topoHud  = game->hudAltura;
+    float baseTela = (float)game->screenHeight;
+
+    int numObs = colunaMovel ? 2 : 1;
+
+    for (int i = 0; i < numObs; i++) {
+        ObstaculoTipo tipo;
+        float velocidade = 0.0f;
+        int direcao = 0;
+        float largura, altura, x, y;
+
+        if (colunaMovel) {
+            // MÓVEIS
+            int r = rand() % 4;
+            switch (r) {
+                case 0: tipo = OBSTACULO_TUBARAO;    velocidade = 120.0f; break;
+                case 1: tipo = OBSTACULO_CARANGUEJO; velocidade = 90.0f;  break;
+                case 2: tipo = OBSTACULO_AGUA_VIVA;  velocidade = 70.0f;  break;
+                default: tipo = OBSTACULO_BALEIA;    velocidade = 50.0f;  break;
+            }
+            direcao = 1; // descendo
+
+            largura = larguraBase;
+            altura  = game->blocoTamanho * 0.8f;
+
+            x = colunaX + (game->colunaLargura - largura) * 0.5f;
+            y = topoHud + ((float)rand() / (float)RAND_MAX) * (baseTela - topoHud - altura);
+        } else {
+            // FIXOS
+            int r = rand() % 4;
+            switch (r) {
+                case 0: tipo = OBSTACULO_PEDRA;  break;
+                case 1: tipo = OBSTACULO_CORAL;  break;
+                case 2: tipo = OBSTACULO_CONCHA; break;
+                default: tipo = OBSTACULO_ALGA;  break;
+            }
+            velocidade = 0.0f;
+            direcao = 0;
+
+            largura = larguraBase * 0.9f;
+            altura  = game->blocoTamanho * 2.0f;
+
+            x = colunaX + (game->colunaLargura - largura) * 0.5f;
+
+            int linha = rand() % game->linhas;
+            float yBase = topoHud + linha * game->blocoTamanho;
+            // fixo "ocupando" mais de um bloco para cima
+            y = yBase + (game->blocoTamanho - altura * 0.5f);
+        }
+
+        Obstacle *o = CreateObstacle(tipo, x, y, largura, altura, velocidade, direcao);
+        AddObstacle(&game->obstaculos, o);
+    }
 }

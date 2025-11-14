@@ -1,125 +1,151 @@
 #include "obstacle.h"
-#include "game.h"
 #include <stdlib.h>
-#include <time.h>
 
-static float RandomFloatRange(float min, float max) {
-    return min + ((float)rand() / (float)RAND_MAX) * (max - min);
-}
+// Cores temporárias para cada tipo (até ter sprites)
+static Color GetObstacleColor(ObstaculoTipo tipo) {
+    switch (tipo) {
+        // Fixos (areia)
+        case OBSTACULO_PEDRA:      return GRAY;
+        case OBSTACULO_CORAL:      return ORANGE;
+        case OBSTACULO_CONCHA:     return BEIGE;
+        case OBSTACULO_ALGA:       return GREEN;
 
-void InitObstacles(Obstacle *obstaculos, ColumnType *columnTypes, int worldColumns, int linhas, int *total) {
-    static int seeded = 0;
-    if (!seeded) {
-        srand((unsigned int)time(NULL));
-        seeded = 1;
-    }
+        // Móveis (mar)
+        case OBSTACULO_TUBARAO:    return RED;
+        case OBSTACULO_CARANGUEJO: return MAROON;
+        case OBSTACULO_AGUA_VIVA:  return PURPLE;
+        case OBSTACULO_BALEIA:     return BLUE;
 
-    *total = 0;
-    const int safeStartColumns = 5;
-
-    for (int col = 0; col < worldColumns && *total < MAX_OBSTACLES; col++) {
-        if (columnTypes[col] != COLUMN_SAND) continue;
-        if (col < safeStartColumns) continue;
-
-        int movingCount = 1 + rand() % 2; // 1-2 peixes móveis
-        int staticCount = 1 + rand() % 2; // 1-2 corais fixos
-
-        for (int m = 0; m < movingCount && *total < MAX_OBSTACLES; m++) {
-            Obstacle *obs = &obstaculos[(*total)++];
-            obs->coluna = col;
-            obs->tipo = (rand() % 100 < 40) ? MOVEL2 : MOVEL1;
-            obs->altura = (obs->tipo == MOVEL2) ? 1.8f : 1.2f;
-
-            float maxInicio = (float)linhas - obs->altura;
-            if (maxInicio < 0.0f) maxInicio = 0.0f;
-
-            obs->linha = RandomFloatRange(0.0f, maxInicio);
-            obs->velocidade = RandomFloatRange(1.2f, 2.6f);
-            obs->sentido = (rand() % 2 == 0) ? 1 : -1;
-        }
-
-        for (int s = 0; s < staticCount && *total < MAX_OBSTACLES; s++) {
-            Obstacle *obs = &obstaculos[(*total)++];
-            obs->coluna = col;
-            obs->tipo = IMOVEL;
-            obs->altura = (rand() % 100 < 50) ? 1.0f : 1.5f;
-
-            float maxInicio = (float)linhas - obs->altura;
-            if (maxInicio < 0.0f) maxInicio = 0.0f;
-
-            obs->linha = RandomFloatRange(0.0f, maxInicio);
-            obs->velocidade = 0.0f;
-            obs->sentido = 0;
-        }
+        default:                   return WHITE;
     }
 }
 
-void UpdateObstacles(Obstacle *obstaculos, int total, int linhas) {
-    float dt = GetFrameTime();
+Obstacle *CreateObstacle(ObstaculoTipo tipo,
+                         float x, float y,
+                         float largura, float altura,
+                         float velocidade, int direcao) {
+    Obstacle *o = (Obstacle *)malloc(sizeof(Obstacle));
+    if (!o) return NULL;
 
-    for (int i = 0; i < total; i++) {
-        Obstacle *obs = &obstaculos[i];
-        if (obs->tipo == IMOVEL) continue;
+    o->tipo = tipo;
+    o->x = x;
+    o->y = y;
+    o->largura = largura;
+    o->altura = altura;
+    o->velocidade = velocidade;
+    o->direcao = direcao;
+    o->prox = NULL;
 
-        obs->linha += obs->velocidade * obs->sentido * dt;
+    o->hitbox = (Rectangle){ x, y, largura, altura };
 
-        float maxLinha = (float)linhas - obs->altura;
-        if (maxLinha < 0.0f) maxLinha = 0.0f;
+    return o;
+}
 
-        if (obs->linha < 0.0f) {
-            obs->linha = 0.0f;
-            obs->sentido *= -1;
-        } else if (obs->linha > maxLinha) {
-            obs->linha = maxLinha;
-            obs->sentido *= -1;
+void AddObstacle(Obstacle **lista, Obstacle *novo) {
+    if (!novo) return;
+    if (*lista == NULL) {
+        *lista = novo;
+        return;
+    }
+    Obstacle *atual = *lista;
+    while (atual->prox != NULL) {
+        atual = atual->prox;
+    }
+    atual->prox = novo;
+}
+
+void DestroyObstacleList(Obstacle **lista) {
+    Obstacle *atual = *lista;
+    while (atual != NULL) {
+        Obstacle *prox = atual->prox;
+        free(atual);
+        atual = prox;
+    }
+    *lista = NULL;
+}
+
+void RemoveObstaclesLeftOf(Obstacle **lista, float cameraX) {
+    if (!lista || !*lista) return;
+
+    Obstacle *atual = *lista;
+    Obstacle *anterior = NULL;
+
+    while (atual != NULL) {
+        // se o obstáculo está totalmente à esquerda da câmera (bem fora da tela)
+        if (atual->x + atual->largura < cameraX - 5.0f) {
+            Obstacle *rem = atual;
+            if (anterior == NULL) {
+                *lista = atual->prox;
+                atual = *lista;
+            } else {
+                anterior->prox = atual->prox;
+                atual = anterior->prox;
+            }
+            free(rem);
+        } else {
+            anterior = atual;
+            atual = atual->prox;
         }
     }
 }
 
-void DrawObstacles(Obstacle *obstaculos, int total, float blocoTamanho, float hudAltura, float cameraColumn, int screenWidth) {
-    Color fishSmall = (Color){255, 196, 0, 255};
-    Color fishBig   = (Color){255, 120, 40, 255};
-    Color coralColor= (Color){220, 80, 120, 255};
+void UpdateObstacles(Obstacle *lista, float deltaTime,
+                     float hudAltura, float screenHeight) {
+    Obstacle *atual = lista;
+    while (atual != NULL) {
+        if (atual->velocidade > 0.0f) {   // móveis se mexem na VERTICAL
+            atual->y += atual->direcao * atual->velocidade * deltaTime;
 
-    for (int i = 0; i < total; i++) {
-        Obstacle *obs = &obstaculos[i];
+            // wrap vertical: se sair por baixo, volta por cima; se sair por cima, volta por baixo
+            if (atual->y > screenHeight) {
+                atual->y = hudAltura - atual->altura;
+            } else if (atual->y + atual->altura < hudAltura) {
+                atual->y = screenHeight;
+            }
+        }
 
-        float screenX = (obs->coluna - cameraColumn) * blocoTamanho + blocoTamanho * 0.1f;
-        float width = blocoTamanho * 0.8f;
+        // atualiza hitbox em MUNDO
+        atual->hitbox.x = atual->x;
+        atual->hitbox.y = atual->y;
 
-        if (screenX + width < -blocoTamanho || screenX > screenWidth + blocoTamanho) continue;
-
-        float screenY = hudAltura + obs->linha * blocoTamanho;
-        float height = obs->altura * blocoTamanho;
-
-        Color drawColor;
-        if (obs->tipo == IMOVEL)      drawColor = coralColor;
-        else if (obs->tipo == MOVEL2) drawColor = fishBig;
-        else                          drawColor = fishSmall;
-
-        DrawRectangleRounded((Rectangle){screenX, screenY, width, height}, 0.35f, 6, drawColor);
+        atual = atual->prox;
     }
 }
 
-int CheckCollisionPlayerObstacle(void *playerPtr, Obstacle *obstaculos, int total) {
-    Player *player = (Player *)playerPtr;
+void DrawObstacles(Obstacle *lista,
+                   float cameraX,
+                   float hudAltura,
+                   int screenWidth,
+                   int screenHeight) {
+    (void)hudAltura;
 
-    float pLeft   = player->coluna + 0.2f;
-    float pRight  = pLeft + 0.6f;
-    float pTop    = (float)player->linha + 0.1f;
-    float pBottom = pTop + 0.8f;
+    Obstacle *atual = lista;
+    while (atual != NULL) {
+        float screenX = atual->x - cameraX; // scroll
+        float screenY = atual->y;
 
-    for (int i = 0; i < total; i++) {
-        Obstacle *obs = &obstaculos[i];
+        if (screenX + atual->largura >= -50 && screenX <= screenWidth + 50 &&
+            screenY + atual->altura >= hudAltura && screenY <= screenHeight) {
 
-        float oLeft   = (float)obs->coluna + 0.1f;
-        float oRight  = oLeft + 0.8f;
-        float oTop    = obs->linha;
-        float oBottom = oTop + obs->altura;
-
-        if (pRight > oLeft && pLeft < oRight && pBottom > oTop && pTop < oBottom) {
-            return 1;
+            Color c = GetObstacleColor(atual->tipo);
+            DrawRectangle((int)screenX,
+                          (int)screenY,
+                          (int)atual->largura,
+                          (int)atual->altura,
+                          c);
         }
+
+        atual = atual->prox;
     }
-    return 0;
+}
+
+bool CheckCollisionPlayerObstacles(Rectangle playerHitbox, Obstacle *lista) {
+    Obstacle *atual = lista;
+    while (atual != NULL) {
+        if (CheckCollisionRecs(playerHitbox, atual->hitbox)) {
+            return true;
+        }
+        atual = atual->prox;
+    }
+    return false;
 }

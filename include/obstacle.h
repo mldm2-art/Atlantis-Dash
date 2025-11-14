@@ -2,63 +2,67 @@
 #define OBSTACLE_H
 
 #include "raylib.h"
+#include <stdbool.h>
 
-#define MAX_OBSTACLES 512
-#define MAX_WORLD_COLUMNS 512
-
-/*Tipos de colunas (verticais) --- ver dps com os sprites
+// Tipos de obstáculo (fixos + móveis)
 typedef enum {
-    COLUMN_SAFE,
-    COLUMN_SAND
-} ColumnType; */
-
-// ------------------------------------------------------------
-// Tipos de Obstáculos (fixos e móveis)
-// ------------------------------------------------------------
-typedef enum {
-    // Obstáculos FIXOS
+    // Fixos (colunas de areia)
     OBSTACULO_PEDRA,
     OBSTACULO_CORAL,
     OBSTACULO_CONCHA,
     OBSTACULO_ALGA,
 
-    // Obstáculos MÓVEIS
+    // Móveis (colunas de mar)
     OBSTACULO_TUBARAO,
     OBSTACULO_CARANGUEJO,
     OBSTACULO_AGUA_VIVA,
     OBSTACULO_BALEIA
-
 } ObstaculoTipo;
 
-// ------------------------------------------------------------
-// Estrutura completa de um único obstáculo
-// ------------------------------------------------------------
-typedef struct {
-    ObstaculoTipo tipo;    // Tipo do obstáculo (pedra, coral, tubarão...)
+// Nó da lista encadeada de obstáculos
+typedef struct Obstacle {
+    ObstaculoTipo tipo;
 
-    // ---- Posição no mundo (em pixels) ----
-    float x;               // coordenada X real
-    float y;               // coordenada Y real
+    // posição no MUNDO (NÃO é posição na tela)
+    float x;       // horizontal
+    float y;       // vertical
 
-    // ---- Tamanho do sprite / hitbox ----
-    float largura;         // largura em pixels
-    float altura;          // altura em pixels
-    Rectangle hitbox;      // hitbox real usado nas colisões
+    float largura;
+    float altura;
 
-    // ---- Visual ----
-    Texture2D textura;     // textura correspondente ao tipo
+    Rectangle hitbox; // em coordenadas de MUNDO
 
-    // ---- Movimento (apenas para os móveis) ----
-    float velocidade;      // 0 para fixo, >0 para móvel
-    int direcao;           // +1 para direita, -1 para esquerda
+    // Movimento vertical (para móveis)
+    float velocidade;  // pixels por segundo (0 se for fixo)
+    int direcao;       // +1 = descendo, -1 = subindo, 0 = parado
 
+    struct Obstacle *prox;
 } Obstacle;
 
+// Criação / destruição / lista
+Obstacle *CreateObstacle(ObstaculoTipo tipo,
+                         float x, float y,
+                         float largura, float altura,
+                         float velocidade, int direcao);
 
+void AddObstacle(Obstacle **lista, Obstacle *novo);
+void DestroyObstacleList(Obstacle **lista);
 
-void InitObstacles(Obstacle *obstaculos, ColumnType *columnTypes, int worldColumns, int linhas, int *total);
-void UpdateObstacles(Obstacle *obstaculos, int total, int linhas);
-void DrawObstacles(Obstacle *obstaculos, int total, float blocoTamanho, float hudAltura, float cameraColumn, int screenWidth);
-int CheckCollisionPlayerObstacle(void *playerPtr, Obstacle *obstaculos, int total);
+// Remove obstáculos que ficaram totalmente à esquerda da câmera
+void RemoveObstaclesLeftOf(Obstacle **lista, float cameraX);
+
+// Atualiza movimento vertical dos móveis
+void UpdateObstacles(Obstacle *lista, float deltaTime,
+                     float hudAltura, float screenHeight);
+
+// Desenha todos os obstáculos (aplicando scroll horizontal)
+void DrawObstacles(Obstacle *lista,
+                   float cameraX,
+                   float hudAltura,
+                   int screenWidth,
+                   int screenHeight);
+
+// Colisão do player (hitbox em coordenadas de MUNDO) com qualquer obstáculo
+bool CheckCollisionPlayerObstacles(Rectangle playerHitbox, Obstacle *lista);
 
 #endif

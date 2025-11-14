@@ -12,100 +12,58 @@ typedef enum {
     JOGANDO
 } GameState;
 
-// Estrutura do jogador
+// Estrutura do player
 typedef struct {
-    float x, y; // posicao real em pixels pq a colisao funciona em pixels
-    float largura, altura; // tamanho do sprite (pq a raylib tem que saber p desenhar)
-    Rectangle hitbox; // area invísivel,  pd ser do tamanho do srite
-    float blocoTamanho; // tamanho do bloco do grid
+    float x, y;             // posição na TELA (x fixo, y em blocos)
+    float largura, altura;
+    float blocoTamanho;
+    Rectangle hitbox;       // em coordenadas de MUNDO (x + cameraX, y)
 } Player;
 
-// Lista encadeada de obstáculos
-typedef struct ObstaculoNode {
-    Obstacle dados;                // dados do obstáculo
-    struct ObstaculoNode *prox;    // próximo da lista
-} ObstaculoNode;
-
-// ------------------------------
 // Estrutura principal do jogo
-// ------------------------------
 typedef struct {
-
-    // ----------------------
-    // Estado atual
-    // ----------------------
     GameState estado;
 
-    // ----------------------
-    // Janela
-    // ----------------------
     int screenWidth;
     int screenHeight;
 
-    // ----------------------
-    // HUD
-    // ----------------------
-    int vidas;
-    int pontuacao;
-    int moedasColetadas;
-    float hudAltura;            // Área superior reservada
+    // Grid vertical (linhas horizontais)
+    int linhas;
+    float hudAltura;
+    float blocoTamanho;
 
-    // ----------------------
     // Player
-    // ----------------------
     Player player;
-    Texture2D texturaPlayer;
+    Texture2D playerTexture;
 
-    // ----------------------
-    // Obstáculos (lista encadeada)
-    // ----------------------
-    ObstaculoNode *obstaculos;  // Ponteiro para o primeiro obstáculo da lista
-
-    // ----------------------
-    // Texturas dos obstáculos
-    // ----------------------
-    Texture2D texturaPedra;
-    Texture2D texturaCoral;
-    Texture2D texturaConcha;
-    Texture2D texturaAlga;
-
-    // Obstáculos móveis (inimigos)
-    Texture2D texturaTubarão;
-    Texture2D texturaCaranguejo;
-    Texture2D texturaAguaViva;
-    Texture2D texturaBaleia;
-
-    // ----------------------
-    // Fundo do jogo --- vai mudar pq tem específicas p movel e p fixo
-    // ----------------------
+    // Fundos
     Texture2D backgroundTexture;
+    Texture2D seletorNivelBackground;
 
-    // ----------------------
-    // Controle de scroll (tecla D)
-    // ----------------------
-    float velocidadeScroll;      // Velocidade que o cenário anda
-    float cameraX;               // Quanto a tela já andou
-    float distanciaPercorrida;   // Distância total percorrida no nível
-    float metaDoNivel;           // Distância necessária para completar o nível
-
-    // ----------------------
-    // Menu
-    // ----------------------
+    // Menus
     int menuSelecionado;
     int nivelSelecionado;
 
-    // ----------------------
-    // Flags de controle
-    // ----------------------
-    bool podeMover;              // Player pode dar outro passo?
-    float cooldownMovimento;     // Timer entre movimentos
-    bool scrollAtivo;            // Se o player está apertando D
-    bool paused;                 // Pausado ou não
-    bool gameOverFlag;           // Status de game over
+    // HUD
+    int vidas;
+    int pontuacao;
+    int moedasColetadas;
 
+    // Obstáculos (lista encadeada)
+    Obstacle *obstaculos;
+
+    // Mundo em colunas + câmera
+    float cameraX;             // deslocamento horizontal da câmera (pixels)
+    float velocidadeScroll;    // velocidade de scroll quando segura D
+
+    int numColunasVisiveis;    // 7 (tela padrão)
+    float colunaLargura;       // largura de cada coluna em pixels
+
+    int worldColumns;          // total de colunas no nível (100)
+    int primeiraColuna;        // índice da coluna mais à esquerda do mundo
+    int proximaColuna;         // próxima coluna do mundo a ser gerada à direita
 } Game;
 
-// Funções principais
 Game InitGame(int screenWidth, int screenHeight);
 void UpdateGame(Game *game);
 void DrawGame(Game *game);
