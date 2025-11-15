@@ -2,14 +2,18 @@
 #include "game.h"
 
 int main(void) {
-    const int screenWidth = 800;
-    const int screenHeight = 600;
 
-    // Configurações da janela
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
-
-    InitWindow(screenWidth, screenHeight, "Atlantis Dash");
+    // Criar a janela com um tamanho qualquer (não importa)
+    InitWindow(800, 600, "Atlantis Dash");
     InitAudioDevice();
+
+    // Agora sim → colocar fullscreen REAL
+    SetWindowState(FLAG_FULLSCREEN_MODE);
+
+    // Atualiza resolução REAL da tela
+    int monitor = GetCurrentMonitor();
+    int screenWidth  = GetMonitorWidth(monitor);
+    int screenHeight = GetMonitorHeight(monitor);
 
     // ESC não fecha a janela
     SetExitKey(KEY_NULL);
@@ -22,9 +26,7 @@ int main(void) {
         DrawGame(&game);
     }
 
-    // Libera todos os recursos do jogo (texturas etc.)
     UnloadGame(&game);
-
     CloseAudioDevice();
     CloseWindow();
     return 0;

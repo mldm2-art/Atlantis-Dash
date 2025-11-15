@@ -241,7 +241,7 @@ void DrawGame(Game *game) {
         }
 
         int leftX = (int)(w * 0.04f);
-        int rightX = (int)(w * 0.55f);
+        int rightX = (int)(w * 0.52f);
 
         int baseY = (int)(h * 0.42f);
         int line = fontSize + 6;
