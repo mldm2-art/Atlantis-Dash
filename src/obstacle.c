@@ -34,7 +34,7 @@ Obstacle *CreateObstacle(ObstaculoTipo tipo,
     o->altura = altura;
     o->velocidade = velocidade;
     o->direcao = direcao;
-    o->prox = NULL;
+    o->next = NULL;
 
     o->hitbox = (Rectangle){ x, y, largura, altura };
 
@@ -48,16 +48,16 @@ void AddObstacle(Obstacle **lista, Obstacle *novo) {
         return;
     }
     Obstacle *atual = *lista;
-    while (atual->prox != NULL) {
-        atual = atual->prox;
+    while (atual->next != NULL) {
+        atual = atual->next;
     }
-    atual->prox = novo;
+    atual->next = novo;
 }
 
 void DestroyObstacleList(Obstacle **lista) {
     Obstacle *atual = *lista;
     while (atual != NULL) {
-        Obstacle *prox = atual->prox;
+        Obstacle *prox = atual->next;
         free(atual);
         atual = prox;
     }
@@ -75,16 +75,16 @@ void RemoveObstaclesLeftOf(Obstacle **lista, float cameraX) {
         if (atual->x + atual->largura < cameraX - 5.0f) {
             Obstacle *rem = atual;
             if (anterior == NULL) {
-                *lista = atual->prox;
+                *lista = atual->next;
                 atual = *lista;
             } else {
-                anterior->prox = atual->prox;
-                atual = anterior->prox;
+                anterior->next = atual->next;
+                atual = anterior->next;
             }
             free(rem);
         } else {
             anterior = atual;
-            atual = atual->prox;
+            atual = atual->next;
         }
     }
 }
@@ -108,7 +108,7 @@ void UpdateObstacles(Obstacle *lista, float deltaTime,
         atual->hitbox.x = atual->x;
         atual->hitbox.y = atual->y;
 
-        atual = atual->prox;
+        atual = atual->next;
     }
 }
 
@@ -135,7 +135,7 @@ void DrawObstacles(Obstacle *lista,
                           c);
         }
 
-        atual = atual->prox;
+        atual = atual->next;
     }
 }
 
@@ -145,7 +145,7 @@ bool CheckCollisionPlayerObstacles(Rectangle playerHitbox, Obstacle *lista) {
         if (CheckCollisionRecs(playerHitbox, atual->hitbox)) {
             return true;
         }
-        atual = atual->prox;
+        atual = atual->next;
     }
     return false;
 }

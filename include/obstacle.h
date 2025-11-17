@@ -36,7 +36,7 @@ typedef struct Obstacle {
     float velocidade;  // pixels por segundo (0 se for fixo)
     int direcao;       // +1 = descendo, -1 = subindo, 0 = parado
 
-    struct Obstacle *prox;
+    struct Obstacle *next;
 } Obstacle;
 
 // Criação / destruição / lista

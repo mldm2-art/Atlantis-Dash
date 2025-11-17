@@ -29,10 +29,10 @@ Game InitGame(int screenWidth, int screenHeight) {
     // Mundo em colunas
     game.numColunasVisiveis = 7;                      // 7 colunas visíveis
     game.colunaLargura = (float)screenWidth / game.numColunasVisiveis;
-    game.worldColumns = 100;                          // nível com 100 colunas de mundo
+    game.worldColumns = 28;                          // nível com 28 colunas de mundo
 
     game.cameraX = 0.0f;
-    game.velocidadeScroll = 200.0f;                   // pixels por segundo
+    game.velocidadeScroll = 100.0f;                   // pixels por segundo
 
     // Player
     game.player.blocoTamanho = game.blocoTamanho;
@@ -40,8 +40,8 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.player.altura  = game.blocoTamanho * 0.5f;
 
     // Texturas
-    game.playerTexture       = LoadTexture("assets/imgs/personagemsprite.png");
-    game.backgroundTexture   = LoadTexture("assets/imgs/menu_jogo.png");
+    game.playerTexture = LoadTexture("assets/imgs/personagemsprite.png");
+    game.backgroundTexture = LoadTexture("assets/imgs/menu_jogo.png");
     game.seletorNivelBackground = game.backgroundTexture; // por enquanto igual
 
     // Menus / HUD
