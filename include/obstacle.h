@@ -63,6 +63,6 @@ void DrawObstacles(Obstacle *lista,
                    int screenHeight);
 
 // Colisão do player (hitbox em coordenadas de MUNDO) com qualquer obstáculo
-bool CheckCollisionPlayerObstacles(Rectangle playerHitbox, Obstacle *lista);
+Obstacle *CheckCollisionPlayerObstacles(Rectangle playerHitbox, Obstacle *lista);
 
 #endif

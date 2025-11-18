@@ -47,9 +47,9 @@ Game InitGame(int screenWidth, int screenHeight) {
     // Menus / HUD
     game.menuSelecionado = 0;
     game.nivelSelecionado = 0;
-    game.vidas = 3;
-    game.pontuacao = 0;
-    game.moedasColetadas = 0;
+    game.hud.vidas = 3;
+    game.hud.pontuacao = 0;
+    game.hud.moedas = 0;
 
     // Obstáculos
     game.obstaculos = NULL;
@@ -85,7 +85,7 @@ void UpdateGame(Game *game) {
 
         if (IsKeyPressed(KEY_ENTER)) {
             game->estado = JOGANDO;
-            game->vidas = 3;
+            game->hud.vidas = 3;
 
             GenerateWorldForLevel(game);
             ResetPlayer(game);
@@ -137,17 +137,35 @@ void UpdateGame(Game *game) {
         game->player.hitbox.height = game->player.altura;
 
         // Colisão
-        if (CheckCollisionPlayerObstacles(game->player.hitbox, game->obstaculos)) {
-            if (game->vidas > 0) game->vidas--;
+        Obstacle *hit = CheckCollisionPlayerObstacles(game->player.hitbox, game->obstaculos);
+        if (hit != NULL) {
+            // obstáculo FIXO
+            if (hit->velocidade == 0) {
+                //  impede o player de continuar avançando
+                game->cameraX -= game->colunaLargura; 
+                if (game->cameraX < 0) game->cameraX = 0; // só segurança
+            }
 
-            if (game->vidas > 0) {
-                ResetPlayer(game);
-            } else {
-                game->vidas = 3;
-                GenerateWorldForLevel(game);
-                ResetPlayer(game);
+            // obstáculo MÓVEL
+            else {
+                // perde vida
+                if (game->hud.vidas > 0) game->hud.vidas--;
+
+                // ainda tem vidas?
+                if (game->hud.vidas > 0) {
+                    // NÃO reseta o mundo - só volta o peixe pro lugar
+                    ResetPlayer(game);
+                }
+
+                // MORREU
+                else {
+                    game->hud.vidas = 3;
+                    GenerateWorldForLevel(game); // recria o mundo
+                    ResetPlayer(game);            // volta o peixe
+                }
             }
         }
+
 
         // Fim do nível: câmera passou da última coluna de mundo
         float fimNivelX = game->worldColumns * game->colunaLargura;
@@ -350,7 +368,7 @@ void DrawGame(Game *game) {
         // HUD
         DrawRectangle(0, 0, game->screenWidth, game->hudAltura, (Color){20, 50, 80, 255});
         DrawText(TextFormat("Nivel %d", game->nivelSelecionado + 1), 10, 10, 20, RAYWHITE);
-        DrawText(TextFormat("Vidas: %d", game->vidas), 150, 10, 20, RAYWHITE);
+        DrawText(TextFormat("Vidas: %d", game->hud.vidas), 150, 10, 20, RAYWHITE);
 
         Color sandColor  = (Color){194, 178, 128, 255};
         Color waterColor = (Color){8, 24, 48, 255};

@@ -139,13 +139,13 @@ void DrawObstacles(Obstacle *lista,
     }
 }
 
-bool CheckCollisionPlayerObstacles(Rectangle playerHitbox, Obstacle *lista) {
+Obstacle *CheckCollisionPlayerObstacles(Rectangle playerHitbox, Obstacle *lista) {
     Obstacle *atual = lista;
     while (atual != NULL) {
         if (CheckCollisionRecs(playerHitbox, atual->hitbox)) {
-            return true;
+            return atual;  // retorna o obstáculo que bateu
         }
         atual = atual->next;
     }
-    return false;
+    return NULL;  // sem colisão
 }
