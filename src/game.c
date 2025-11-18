@@ -22,7 +22,7 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.estado = MENU;
 
     // Grid vertical: 7 linhas
-    game.linhas = 7;
+    game.linhas = 6;
     game.hudAltura = 96;
     game.blocoTamanho = (screenHeight - game.hudAltura) / game.linhas;
 
@@ -241,7 +241,7 @@ void DrawGame(Game *game) {
                  w / 2 - MeasureText(titulo, h * 0.05f) / 2,
                  (int)(h * 0.08f), (int)(h * 0.05f), SKYBLUE);
 
-        int fontSize = (int)(h * 0.015f);
+        int fontSize = (int)(h * 0.01f);
         int posY = (int)(h * 0.18f);
 
         const char *intro[] = {
@@ -330,14 +330,14 @@ void DrawGame(Game *game) {
             WHITE
         );
 
-        const char *titulo = "SELECIONE O NIVEL";
+        const char *titulo = "SELECIONE O NÍVEL";
         DrawText(titulo, game->screenWidth / 2 - MeasureText(titulo, 50) / 2, 100, 50, SKYBLUE);
 
         const char *niveis[4] = {
-            "Nivel 1 - Recifes Rasos",
-            "Nivel 2 - Caverna Coralina",
-            "Nivel 3 - Passagem do Tubarao",
-            "Nivel 4 - Abismo Final"
+            "Nível 1 - Manguebeat de Chico Science",
+            "Nível 2 - Porto de Galinhas",
+            "Nível 3 - Fernando de Noronha",
+            "Nível 4 - Ataques da orla de Boa Viagem"
         };
 
         int tamanhoFonte = 28;
@@ -493,7 +493,8 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
     float larguraBase = game->blocoTamanho * 0.8f;
     float colunaX = worldColumnIndex * game->colunaLargura;
     float topoHud  = game->hudAltura;
-    float baseTela = (float)game->screenHeight;
+    float limiteInferior = game->hudAltura + game->linhas * game->blocoTamanho;
+    float margem = 6.0f;
 
     int numObs = colunaMovel ? 2 : 1;
 
@@ -518,7 +519,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
             altura  = game->blocoTamanho * 0.8f;
 
             x = colunaX + (game->colunaLargura - largura) * 0.5f;
-            y = topoHud + ((float)rand() / (float)RAND_MAX) * (baseTela - topoHud - altura);
+            y = topoHud + margem + ((float)rand() / (float)RAND_MAX) * (limiteInferior - topoHud - altura - 2*margem);
         } else {
             // FIXOS
             int r = rand() % 4;

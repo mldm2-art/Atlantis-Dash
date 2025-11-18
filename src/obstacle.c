@@ -89,18 +89,30 @@ void RemoveObstaclesLeftOf(Obstacle **lista, float cameraX) {
     }
 }
 
-void UpdateObstacles(Obstacle *lista, float deltaTime,
-                     float hudAltura, float screenHeight) {
+void UpdateObstacles(Obstacle *lista, float deltaTime, float hudAltura, float screenHeight) {
     Obstacle *atual = lista;
     while (atual != NULL) {
         if (atual->velocidade > 0.0f) {   // móveis se mexem na VERTICAL
             atual->y += atual->direcao * atual->velocidade * deltaTime;
 
-            // wrap vertical: se sair por baixo, volta por cima; se sair por cima, volta por baixo
-            if (atual->y > screenHeight) {
-                atual->y = hudAltura - atual->altura;
-            } else if (atual->y + atual->altura < hudAltura) {
-                atual->y = screenHeight;
+            if (atual->velocidade > 0.0f) {   // móveis se mexem na VERTICAL
+                atual->y += atual->direcao * atual->velocidade * deltaTime;
+
+                // limites da área jogável
+                float topo = hudAltura;
+                float base = hudAltura + 6 * 96.0f;   // 6 linhas de 96px cada
+
+                // impedir subir para dentro do HUD
+                if (atual->y < topo) {
+                    atual->y = topo;
+                    atual->direcao = 1;  // desce
+                }
+
+                // impedir passar do final da área de jogo
+                if (atual->y + atual->altura > base) {
+                    atual->y = base - atual->altura;
+                    atual->direcao = -1;  // sobe
+                }
             }
         }
 
