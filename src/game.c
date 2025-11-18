@@ -23,11 +23,11 @@ Game InitGame(int screenWidth, int screenHeight) {
 
     // Grid vertical: 7 linhas
     game.linhas = 7;
-    game.hudAltura = screenHeight * 0.15f;
+    game.hudAltura = 96;
     game.blocoTamanho = (screenHeight - game.hudAltura) / game.linhas;
 
     // Mundo em colunas
-    game.numColunasVisiveis = 11;                    // 14 colunas visíveis
+    game.numColunasVisiveis = 9;                    // 14 colunas visíveis
     game.colunaLargura = (float)screenWidth / game.numColunasVisiveis;
     game.worldColumns = 40;                          // nível com 40 colunas de mundo
 
@@ -241,7 +241,7 @@ void DrawGame(Game *game) {
                  w / 2 - MeasureText(titulo, h * 0.05f) / 2,
                  (int)(h * 0.08f), (int)(h * 0.05f), SKYBLUE);
 
-        int fontSize = (int)(h * 0.022f);
+        int fontSize = (int)(h * 0.015f);
         int posY = (int)(h * 0.18f);
 
         const char *intro[] = {

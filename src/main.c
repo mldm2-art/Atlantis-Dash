@@ -3,19 +3,13 @@
 
 int main(void) {
 
+    int screenWidth = 864;
+    int screenHeight = 672;
+
     // Criar a janela com um tamanho qualquer (não importa)
-    InitWindow(800, 600, "Atlantis Dash");
+    InitWindow(screenWidth, screenHeight, "Atlantis Dash");
     InitAudioDevice();
-
-    // Agora sim → colocar fullscreen REAL
-    SetWindowState(FLAG_FULLSCREEN_MODE);
-
-    // Atualiza resolução REAL da tela
-    int monitor = GetCurrentMonitor();
-    int screenWidth  = GetMonitorWidth(monitor);
-    int screenHeight = GetMonitorHeight(monitor);
-
-    // ESC não fecha a janela
+    
     SetExitKey(KEY_NULL);
 
     Game game = InitGame(screenWidth, screenHeight);
