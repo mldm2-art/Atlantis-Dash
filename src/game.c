@@ -27,9 +27,9 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.blocoTamanho = (screenHeight - game.hudAltura) / game.linhas;
 
     // Mundo em colunas
-    game.numColunasVisiveis = 7;                      // 7 colunas visíveis
+    game.numColunasVisiveis = 11;                    // 14 colunas visíveis
     game.colunaLargura = (float)screenWidth / game.numColunasVisiveis;
-    game.worldColumns = 28;                          // nível com 28 colunas de mundo
+    game.worldColumns = 40;                          // nível com 40 colunas de mundo
 
     game.cameraX = 0.0f;
     game.velocidadeScroll = 100.0f;                   // pixels por segundo
