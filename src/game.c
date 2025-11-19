@@ -21,7 +21,7 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.screenHeight = screenHeight;
     game.estado = MENU;
 
-    // Grid vertical: 7 linhas
+    // Grid vertical: 6 linhas
     game.linhas = 6;
     game.hudAltura = 96;
     game.blocoTamanho = (screenHeight - game.hudAltura) / game.linhas;
@@ -31,8 +31,11 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.colunaLargura = (float)screenWidth / game.numColunasVisiveis;
     game.worldColumns = 40;                          // nível com 40 colunas de mundo
 
+    // camera começa parada 
     game.cameraX = 0.0f;
-    game.velocidadeScroll = 100.0f;                   // pixels por segundo
+    game.cameraMovendo = false;
+    game.cameraDestinoX = game.cameraX;
+    game.cameraVelocidade = 384.0f;                  // pixels por segundo
 
     // Player
     game.player.blocoTamanho = game.blocoTamanho;
@@ -97,17 +100,33 @@ void UpdateGame(Game *game) {
     }
     else if (game->estado == JOGANDO) {
         float delta = GetFrameTime(); 
+
          // Player só sobe/desce por blocos
         UpdatePlayer(game);
 
-        // Scroll em BLOCOS na horizontal: cada D = 1 coluna
-        if (IsKeyPressed(KEY_D)) {
-            game->cameraX += game->colunaLargura;
+        //Movimento da camera
+        if (game->cameraMovendo) {
+            game->cameraX += game->cameraVelocidade * delta;
+
+            if (game->cameraX >= game->cameraDestinoX) {
+                game->cameraX = game->cameraDestinoX;
+                game->cameraMovendo = false;
+            }
+        }
+        // Scroll em pixels: Apertou D → define o objetivo, o destino. E o movimento é feito suavemente depois.
+        // Inicia o movimento suave apenas se a câmera estiver parada
+        if (IsKeyPressed(KEY_D) && !game->cameraMovendo ) {
 
             // opcional: impede de passar muito do fim do nível
             float fimNivelX = game->worldColumns * game->colunaLargura;
-            if (game->cameraX > fimNivelX)
-            game->cameraX = fimNivelX;
+            float destino = game->cameraX + game->colunaLargura;
+            
+            // Se o destino passar do fim do nível, trava no fim
+            if (destino > fimNivelX) destino = fimNivelX;
+
+            game->cameraDestinoX = destino;
+            game->cameraMovendo = true;
+            
         }
         float limiteRemocao = (game->primeiraColuna + 1) * game->colunaLargura;
 

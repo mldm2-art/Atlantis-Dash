@@ -59,7 +59,9 @@ typedef struct { // struct 'Game'
 
     // Mundo em colunas + câmera:
     float cameraX;             // deslocamento horizontal da câmera em pixels (quanto mundo já “rolou” para a esquerda)
-    float velocidadeScroll;    // velocidade de scroll quando segura D
+    float cameraDestinoX;   // posição atual é cameraX e a posição de destino(cameraDestinoX) é: cameraX + larguraDeUmBloco. -> Depois disso a câmera vai deslizando até chegar nesse destino.
+    bool cameraMovendo; // a camera ta andando agr? true: ta se movendo, flase: ta parada (impede que o jogador aperte d varias vezes enquanto a cameta ta andando)
+    float cameraVelocidade; // pixels por frame, velocidade da camera
 
     int numColunasVisiveis;    // quantidade de colunas que vemos por tela (7 por tela) obs:podemos aumentar isso também
     float colunaLargura;       // largura de cada coluna em pixels (colunaLargura = screenWidth / numColunasVisiveis)
