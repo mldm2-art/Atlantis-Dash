@@ -1,5 +1,11 @@
 #include "obstacle.h"
+#include "game.h"
+#include "textures.h"
+
+#include "raylib.h"
 #include <stdlib.h>
+
+
 
 // Cores temporárias para cada tipo (até ter sprites)
 static Color GetObstacleColor(ObstaculoTipo tipo) {
@@ -124,11 +130,75 @@ void UpdateObstacles(Obstacle *lista, float deltaTime, float hudAltura, float sc
     }
 }
 
+// Desenha UM obstáculo usando sua textura correta
+// Recebe as texturas vindas do Game (por referência)
+
+static void DrawObstacleSprite(
+    Obstacle *o,
+    float cameraX,
+    ObstacleTextures *tex
+) {
+    float screenX = o->x - cameraX;
+    float screenY = o->y;
+
+    Texture2D sprite;
+
+    switch (o->tipo) {
+
+        
+        // FIXOS
+       
+        case OBSTACULO_PEDRA:
+            sprite = tex->pedra;
+            break;
+
+        case OBSTACULO_CORAL:
+            sprite = tex->coral;
+            break;
+
+        case OBSTACULO_CONCHA:
+            sprite = tex->concha;
+            break;
+
+        case OBSTACULO_ALGA:
+            // por enquanto SEM animação, usamos o frame central
+            sprite = tex->algaCentro;
+            break;
+
+        
+        // MÓVEIS (só carangueijo no nível 1)
+        
+        case OBSTACULO_CARANGUEJO:
+            // por enquanto sem animação:
+            sprite = tex->carangueijoParado;
+            break;
+
+        // Os outros móveis ainda não entram no nível 1
+        case OBSTACULO_TUBARAO:
+        case OBSTACULO_AGUA_VIVA:
+        case OBSTACULO_BALEIA:
+            return; // não desenhar nada ainda
+    }
+
+    // Proporção do sprite para ocupar o mesmo espaço dos retângulos antigos
+    float scaleX = o->largura  / sprite.width;
+    float scaleY = o->altura   / sprite.height;
+
+    DrawTextureEx(
+        sprite,
+        (Vector2){screenX, screenY},
+        0.0f,
+        (scaleX < scaleY ? scaleX : scaleY), // preserva proporção
+        WHITE
+    );
+}
+
 void DrawObstacles(Obstacle *lista,
                    float cameraX,
                    float hudAltura,
                    int screenWidth,
-                   int screenHeight) {
+                   int screenHeight, 
+                   ObstacleTextures *texRef) {
     (void)hudAltura;
 
     Obstacle *atual = lista;
@@ -139,12 +209,9 @@ void DrawObstacles(Obstacle *lista,
         if (screenX + atual->largura >= -50 && screenX <= screenWidth + 50 &&
             screenY + atual->altura >= hudAltura && screenY <= screenHeight) {
 
-            Color c = GetObstacleColor(atual->tipo);
-            DrawRectangle((int)screenX,
-                          (int)screenY,
-                          (int)atual->largura,
-                          (int)atual->altura,
-                          c);
+            // Agora desenhamos o sprite correspondente ao tipo do obstáculo
+            DrawObstacleSprite(atual, cameraX, texRef);
+
         }
 
         atual = atual->next;

@@ -39,13 +39,48 @@ Game InitGame(int screenWidth, int screenHeight) {
 
     // Player
     game.player.blocoTamanho = game.blocoTamanho;
-    game.player.largura = game.blocoTamanho * 0.5f;
-    game.player.altura  = game.blocoTamanho * 0.5f;
+
+    // tamanho real do sprite após scale
+    float scalePeixe = (game.blocoTamanho * 0.6f) / game.playerTexture.height;
+
+    game.player.largura = game.playerTexture.width * scalePeixe;
+    game.player.altura  = game.playerTexture.height * scalePeixe;
 
     // Texturas
     game.playerTexture = LoadTexture("assets/imgs/personagemsprite.png");
     game.backgroundTexture = LoadTexture("assets/imgs/menu_jogo.png");
     game.seletorNivelBackground = game.backgroundTexture; // por enquanto igual
+
+    
+    //TEXTURAS DE OBSTÁCULOS
+        // Fixos
+    game.obstTextures.pedra = LoadTexture("assets/imgs/pedrapronta.png");
+    game.obstTextures.coral = LoadTexture("assets/imgs/coralpronto.png");
+    game.obstTextures.concha = LoadTexture("assets/imgs/conchapronta.png");
+
+        // Alga animada
+    game.obstTextures.algaCentro = LoadTexture("assets/imgs/algapronta.png");
+    game.obstTextures.algaEsq    = LoadTexture("assets/imgs/algaesquerdapronta.png");
+    game.obstTextures.algaDir    = LoadTexture("assets/imgs/algadireitapronta.png");
+
+        // Carangueijo (nível 1)
+    game.obstTextures.carangueijoParado = LoadTexture("assets/imgs/carangueijopronto.png");
+    game.obstTextures.carangueijoAnim   = LoadTexture("assets/imgs/carangueijoanimacaopronto.png");
+
+        // Água-viva
+    game.obstTextures.aguaVivaCentro = LoadTexture("assets/imgs/aguavivaapronta.png");
+    game.obstTextures.aguaVivaEsq    = LoadTexture("assets/imgs/aguavivaesquerdapronta.png");
+    game.obstTextures.aguaVivaDir    = LoadTexture("assets/imgs/aguavivadireitapronta.png");
+
+        // Baleia
+    game.obstTextures.baleiaParada  = LoadTexture("assets/imgs/baleiapronta.png");
+    game.obstTextures.baleiaAnimada = LoadTexture("assets/imgs/baleiaanimadapronta.png");
+
+        // Tubarão
+    game.obstTextures.tubaCentro = LoadTexture("assets/imgs/tubaraopronto.png");
+    game.obstTextures.tubaEsq    = LoadTexture("assets/imgs/tubaraoesquerda.png");
+    game.obstTextures.tubaDir    = LoadTexture("assets/imgs/tubaraodireita.png");
+
 
     // Menus / HUD
     game.menuSelecionado = 0;
@@ -100,6 +135,34 @@ void UpdateGame(Game *game) {
     }
     else if (game->estado == JOGANDO) {
         float delta = GetFrameTime(); 
+        // Detecta se player se mexeu
+        static float ultimoY = 0;
+        static float ultimaCameraX = 0;
+
+        bool mexeu =
+            (fabs(game->player.y - ultimoY) > 0.1f) ||
+            (fabs(game->cameraX - ultimaCameraX) > 0.1f);
+
+        if (mexeu) {
+            game->tempoParado = 0;
+        } else {
+            game->tempoParado += delta;
+        }
+
+        ultimoY = game->player.y;
+        ultimaCameraX = game->cameraX;
+
+        // Se ficou parado demais → perde vida
+        if (game->tempoParado >= 5.0f) {
+            game->hud.vidas--;
+            if (game->hud.vidas <= 0) {
+                game->hud.vidas = 3;
+                GenerateWorldForLevel(game);
+            }
+            ResetPlayer(game);
+            game->tempoParado = 0;
+        }
+
 
          // Player só sobe/desce por blocos
         UpdatePlayer(game);
@@ -119,7 +182,8 @@ void UpdateGame(Game *game) {
 
             // opcional: impede de passar muito do fim do nível
             float fimNivelX = game->worldColumns * game->colunaLargura;
-            float destino = game->cameraX + game->colunaLargura;
+            float destino = roundf((game->cameraX + game->colunaLargura) / game->colunaLargura) * game->colunaLargura;
+
             
             // Se o destino passar do fim do nível, trava no fim
             if (destino > fimNivelX) destino = fimNivelX;
@@ -150,21 +214,21 @@ void UpdateGame(Game *game) {
         UpdateObstacles(game->obstaculos, delta, game->hudAltura, (float)game->screenHeight);
 
         // Atualiza hitbox do player em COORDENADAS DE MUNDO
-        game->player.hitbox.x = game->player.x + game->cameraX; // mundo = tela + camera
-        game->player.hitbox.y = game->player.y;
-        game->player.hitbox.width  = game->player.largura;
-        game->player.hitbox.height = game->player.altura;
+        game->player.hitbox.x = game->player.x + game->cameraX + game->player.largura * 0.1f;
+        game->player.hitbox.y = game->player.y + game->player.altura * 0.1f;
+        game->player.hitbox.width  = game->player.largura * 0.8f;
+        game->player.hitbox.height = game->player.altura * 0.8f;
+
 
         // Colisão
         Obstacle *hit = CheckCollisionPlayerObstacles(game->player.hitbox, game->obstaculos);
         if (hit != NULL) {
             // obstáculo FIXO
             if (hit->velocidade == 0) {
-                //  impede o player de continuar avançando
-                game->cameraX -= game->colunaLargura; 
-                if (game->cameraX < 0) game->cameraX = 0; // só segurança
+                // Cancela AVANÇO — bloqueia o D corretamente
+                game->cameraDestinoX = game->cameraX;  
+                game->cameraMovendo = false;
             }
-
             // obstáculo MÓVEL
             else {
                 // perde vida
@@ -416,15 +480,21 @@ void DrawGame(Game *game) {
         }
 
         // Obstáculos (com scroll)
-        DrawObstacles(game->obstaculos, game->cameraX, game->hudAltura,
-                      game->screenWidth, game->screenHeight);
-
+        DrawObstacles(
+            game->obstaculos,
+            game->cameraX,
+            game->hudAltura,
+            game->screenWidth,
+            game->screenHeight,
+            &game->obstTextures   // << adicionamos isso
+        );
+        float scalePeixe = (game->blocoTamanho * 0.6f) / game->playerTexture.height;
         // Player (usa posição de TELA)
         DrawTextureEx(
             game->playerTexture,
             (Vector2){game->player.x, game->player.y},
             0.0f,
-            game->blocoTamanho / 96.0f,
+            scalePeixe,
             WHITE
         );
     }
@@ -439,6 +509,31 @@ void UnloadGame(Game *game) {
     UnloadTexture(game->playerTexture);
     UnloadTexture(game->backgroundTexture);
     DestroyObstacleList(&game->obstaculos);
+        // FIXOS
+    UnloadTexture(game->obstTextures.pedra);
+    UnloadTexture(game->obstTextures.coral);
+    UnloadTexture(game->obstTextures.concha);
+
+    // ALGA
+    UnloadTexture(game->obstTextures.algaCentro);
+    UnloadTexture(game->obstTextures.algaEsq);
+    UnloadTexture(game->obstTextures.algaDir);
+
+    // MÓVEIS
+    UnloadTexture(game->obstTextures.carangueijoParado);
+    UnloadTexture(game->obstTextures.carangueijoAnim);
+
+    UnloadTexture(game->obstTextures.aguaVivaCentro);
+    UnloadTexture(game->obstTextures.aguaVivaEsq);
+    UnloadTexture(game->obstTextures.aguaVivaDir);
+
+    UnloadTexture(game->obstTextures.baleiaParada);
+    UnloadTexture(game->obstTextures.baleiaAnimada);
+
+    UnloadTexture(game->obstTextures.tubaCentro);
+    UnloadTexture(game->obstTextures.tubaEsq);
+    UnloadTexture(game->obstTextures.tubaDir);
+
 }
 
 // ------------------------
@@ -447,34 +542,63 @@ void UnloadGame(Game *game) {
 
 // Player sempre na coluna 1 da TELA (segunda coluna)
 static void ResetPlayer(Game *game) {
-    int colunaPlayerTela = 1; // 0 = primeira, 1 = segunda
-    float colunaLarguraTela = (float)game->screenWidth / game->numColunasVisiveis;
 
-    float startX = colunaPlayerTela * colunaLarguraTela
-                 + (colunaLarguraTela - game->player.largura) * 0.5f;
+    // --------------------------
+    // 1) RE-CALCULA SCALE DO PLAYER
+    // --------------------------
+    // O sprite do peixe deve ocupar ~60% da altura do bloco
+    float scalePeixe = (game->blocoTamanho * 0.6f) / game->playerTexture.height;
 
-    float startY = game->hudAltura
-                 + (game->linhas / 2) * game->blocoTamanho
-                 - game->player.altura * 0.5f;
+    game->player.largura = game->playerTexture.width * scalePeixe;
+    game->player.altura  = game->playerTexture.height * scalePeixe;
 
+    // --------------------------
+    // 2) POSIÇÃO INICIAL NA SEGUNDA COLUNA
+    // --------------------------
+    int colunaPlayer = 1; // (0 = esquerda, 1 = segunda coluna)
+
+    float colunaLarguraTela = game->screenWidth / game->numColunasVisiveis;
+
+    float startX =
+        colunaPlayer * colunaLarguraTela +
+        (colunaLarguraTela - game->player.largura) * 0.5f;
+
+    // --------------------------
+    // 3) LINHA CENTRAL EXATA DO GRID
+    // (funciona para qualquer número de linhas)
+    // --------------------------
+    int linhaCentral = (game->linhas - 1) / 2;  // <- agora sempre funciona
+
+    float startY =
+        game->hudAltura +
+        linhaCentral * game->blocoTamanho +
+        (game->blocoTamanho - game->player.altura) * 0.5f;
+
+    // --------------------------
+    // 4) APLICA POSIÇÃO FINAL
+    // --------------------------
     game->player.x = startX;
     game->player.y = startY;
 
+    // --------------------------
+    // 5) DEFINE HITBOX CORRETA
+    // --------------------------
     game->player.hitbox = (Rectangle){
-        game->player.x + game->cameraX, // mundo
-        game->player.y,
-        game->player.largura,
-        game->player.altura
+        game->player.x + game->cameraX + game->player.largura * 0.1f,
+        game->player.y + game->player.altura * 0.1f,
+        game->player.largura * 0.8f,
+        game->player.altura * 0.8f
     };
 }
+
 
 // Player sobe/desce em blocos
 static void UpdatePlayer(Game *game) {
     if (IsKeyPressed(KEY_W)) {
-        game->player.y -= game->player.blocoTamanho;
+        game->player.y -= game->blocoTamanho;
     }
     if (IsKeyPressed(KEY_S)) {
-        game->player.y += game->player.blocoTamanho;
+        game->player.y += game->blocoTamanho;
     }
 
     float minY = game->hudAltura;
@@ -482,6 +606,14 @@ static void UpdatePlayer(Game *game) {
 
     if (game->player.y < minY) game->player.y = minY;
     if (game->player.y > maxY) game->player.y = maxY;
+    // Descobre em qual bloco vertical o player está
+    float indiceBloco = roundf((game->player.y - game->hudAltura) / game->blocoTamanho);
+
+    // Coloca o player no centro desse bloco
+    game->player.y =
+        game->hudAltura +
+        indiceBloco * game->blocoTamanho +
+        (game->blocoTamanho - game->player.altura) * 0.5f;
 }
 
 // Gera colunas iniciais do nível

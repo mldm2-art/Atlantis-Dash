@@ -3,6 +3,7 @@
 
 #include "raylib.h" // bilibioteca gráfica que possui diversas funções próprias como a Texture, a Draw
 #include "obstacle.h" // Estruturas e funções de obstáculos (lista encadeada)
+#include "textures.h"
 
 // Estados do jogo (telas):
 typedef enum {
@@ -47,6 +48,9 @@ typedef struct { // struct 'Game'
     // Fundos:
     Texture2D backgroundTexture; // a gente tem uma imagem salva chamada 'menu_jogo.png em 'assets/imgs' 
     Texture2D seletorNivelBackground; // a gente tem uma imagem salva chamada 'menu_jogo.png em 'assets/imgs'
+    // Texturas agrupadas de obstáculos
+    ObstacleTextures obstTextures;
+
 
     // Menus:
     int menuSelecionado; // índice dos botões da tela de MENU (JOGAR e INTRUÇÕES) que é 0 ou 1
@@ -62,6 +66,8 @@ typedef struct { // struct 'Game'
     float cameraDestinoX;   // posição atual é cameraX e a posição de destino(cameraDestinoX) é: cameraX + larguraDeUmBloco. -> Depois disso a câmera vai deslizando até chegar nesse destino.
     bool cameraMovendo; // a camera ta andando agr? true: ta se movendo, flase: ta parada (impede que o jogador aperte d varias vezes enquanto a cameta ta andando)
     float cameraVelocidade; // pixels por frame, velocidade da camera
+    float tempoParado;
+
 
     int numColunasVisiveis;    // quantidade de colunas que vemos por tela (7 por tela) obs:podemos aumentar isso também
     float colunaLargura;       // largura de cada coluna em pixels (colunaLargura = screenWidth / numColunasVisiveis)

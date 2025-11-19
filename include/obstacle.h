@@ -3,6 +3,8 @@
 
 #include "raylib.h"
 #include <stdbool.h>
+#include "textures.h"
+
 
 // Tipos de obstáculo (fixos + móveis)
 typedef enum {
@@ -60,7 +62,8 @@ void DrawObstacles(Obstacle *lista,
                    float cameraX,
                    float hudAltura,
                    int screenWidth,
-                   int screenHeight);
+                   int screenHeight, 
+                   ObstacleTextures *tex);
 
 // Colisão do player (hitbox em coordenadas de MUNDO) com qualquer obstáculo
 Obstacle *CheckCollisionPlayerObstacles(Rectangle playerHitbox, Obstacle *lista);
