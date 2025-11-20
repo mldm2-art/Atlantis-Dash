@@ -1,4 +1,4 @@
-#ifndef GAME_H // esses dois '#' impedem que o arquivo seja incçuído duas vezes (include guard)
+#ifndef GAME_H // esses dois '#' impedem que o arquivo seja incluido duas vezes (include guard)
 #define GAME_H
 
 #include "raylib.h" // bilibioteca gráfica que possui diversas funções próprias como a Texture, a Draw

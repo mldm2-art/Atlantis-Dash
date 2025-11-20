@@ -555,7 +555,7 @@ static void ResetPlayer(Game *game) {
     // --------------------------
     // 2) POSIÇÃO INICIAL NA SEGUNDA COLUNA
     // --------------------------
-    int colunaPlayer = 1; // (0 = esquerda, 1 = segunda coluna)
+    int colunaPlayer = 0; // (0 = esquerda, 1 = segunda coluna)
 
     float colunaLarguraTela = game->screenWidth / game->numColunasVisiveis;
 
@@ -591,30 +591,68 @@ static void ResetPlayer(Game *game) {
     };
 }
 
+bool TemObstaculoFixo(Game *game, Rectangle futuro) {
+    Obstacle *o = game->obstaculos;
+    while (o != NULL) {
 
-// Player sobe/desce em blocos
+        // ignorar móveis
+        if (o->velocidade == 0) {  // fixos
+            if (CheckCollisionRecs(futuro, o->hitbox)) {
+                return true;
+            }
+        }
+
+        o = o->next;
+    }
+    return false;
+}
+
 static void UpdatePlayer(Game *game) {
+
+    float bloco = game->player.blocoTamanho;
+
+    // HITBOX ATUAL
+    Rectangle atual = game->player.hitbox;
+    
+    // *MOVER PARA CIMA*
     if (IsKeyPressed(KEY_W)) {
-        game->player.y -= game->blocoTamanho;
-    }
-    if (IsKeyPressed(KEY_S)) {
-        game->player.y += game->blocoTamanho;
+        Rectangle futuro = atual;
+        futuro.y -= bloco;
+
+        if (!TemObstaculoFixo(game, futuro)) {
+            game->player.y -= bloco;
+        }
     }
 
+    // *MOVER PARA BAIXO*
+    if (IsKeyPressed(KEY_S)) {
+        Rectangle futuro = atual;
+        futuro.y += bloco;
+
+        if (!TemObstaculoFixo(game, futuro)) {
+            game->player.y += bloco;
+        }
+    }
+
+    // *AVANÇAR PARA FRENTE*
+    if (IsKeyPressed(KEY_D)) {
+        Rectangle futuro = atual;
+        futuro.x += game->colunaLargura;  // avança 1 coluna inteira no mundo
+
+        if (!TemObstaculoFixo(game, futuro)) {
+            game->cameraX += game->colunaLargura;
+        }
+    }
+
+    // LIMITES DE TELA
     float minY = game->hudAltura;
-    float maxY = game->hudAltura + (game->linhas - 1) * game->blocoTamanho;
+    float maxY = game->hudAltura + (game->linhas - 1) * bloco;
 
     if (game->player.y < minY) game->player.y = minY;
     if (game->player.y > maxY) game->player.y = maxY;
-    // Descobre em qual bloco vertical o player está
-    float indiceBloco = roundf((game->player.y - game->hudAltura) / game->blocoTamanho);
-
-    // Coloca o player no centro desse bloco
-    game->player.y =
-        game->hudAltura +
-        indiceBloco * game->blocoTamanho +
-        (game->blocoTamanho - game->player.altura) * 0.5f;
 }
+
+
 
 // Gera colunas iniciais do nível
 static void GenerateWorldForLevel(Game *game) {
@@ -638,6 +676,12 @@ static void GenerateWorldForLevel(Game *game) {
 // Gera uma coluna do mundo (fixa ou móvel) no índice especificado
 static void SpawnColumn(Game *game, int worldColumnIndex) {
     if (worldColumnIndex < 0 || worldColumnIndex >= game->worldColumns) return;
+
+    // PRIMEIRA COLUNA: nunca gera obstáculos
+    if (worldColumnIndex == 0) {
+        return;
+    }
+
 
     bool colunaMovel = (worldColumnIndex % 2 == 0); // par = mar (móveis), impar = areia (fixos)
 
