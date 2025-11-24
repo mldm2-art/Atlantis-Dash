@@ -50,7 +50,8 @@ typedef struct { // struct 'Game'
     Texture2D seletorNivelBackground; // a gente tem uma imagem salva chamada 'menu_jogo.png em 'assets/imgs'
     // Texturas agrupadas de obstáculos
     ObstacleTextures obstTextures;
-
+    Texture2D bgMar;
+    Texture2D bgAreia;
 
     // Menus:
     int menuSelecionado; // índice dos botões da tela de MENU (JOGAR e INTRUÇÕES) que é 0 ou 1

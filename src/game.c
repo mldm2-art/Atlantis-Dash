@@ -81,6 +81,10 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.obstTextures.tubaEsq    = LoadTexture("assets/imgs/tubaraoesquerda.png");
     game.obstTextures.tubaDir    = LoadTexture("assets/imgs/tubaraodireita.png");
 
+    game.bgMar   = LoadTexture("assets/imgs/mar.png");
+    game.bgAreia = LoadTexture("assets/imgs/areia.png");
+
+
 
     // Menus / HUD
     game.menuSelecionado = 0;
@@ -418,37 +422,48 @@ void DrawGame(Game *game) {
     }
     else if (game->estado == JOGANDO) {
         ClearBackground((Color){10, 30, 60, 255});
+        // ---------------- BACKGROUND (mar/areia por bloco) ----------------
+        float baseColuna = floorf(game->cameraX / game->colunaLargura);
+        int colunasDesenho = game->numColunasVisiveis + 2;
 
+        for (int i = 0; i < colunasDesenho; i++) {
+
+            int colIndex = (int)baseColuna + i;
+            float x = colIndex * game->colunaLargura - game->cameraX;
+
+            bool colunaMovel = (colIndex % 2 == 0);
+            Texture2D tile = colunaMovel ? game->bgMar : game->bgAreia;
+
+            for (int linha = 0; linha < game->linhas; linha++) {
+
+                float y = game->hudAltura + linha * game->blocoTamanho;
+
+            DrawTexturePro(
+                    tile,
+                    (Rectangle){0,0,tile.width,tile.height},
+                    (Rectangle){x,y,game->colunaLargura,game->blocoTamanho},
+                    (Vector2){0,0},
+                    0.0f,
+                    WHITE
+                );
+            }
+        }
+
+
+    
         // HUD
         DrawRectangle(0, 0, game->screenWidth, game->hudAltura, (Color){20, 50, 80, 255});
         DrawText(TextFormat("Nivel %d", game->nivelSelecionado + 1), 10, 10, 20, RAYWHITE);
         DrawText(TextFormat("Vidas: %d", game->hud.vidas), 150, 10, 20, RAYWHITE);
 
-        Color sandColor  = (Color){194, 178, 128, 255};
-        Color waterColor = (Color){8, 24, 48, 255};
-        Color gridColor  = (Color){0, 0, 50, 120};
-
-        // Desenho das colunas de fundo (mar/areia) com scroll
-        float baseColuna = floorf(game->cameraX / game->colunaLargura);
-        int colunasDesenho = game->numColunasVisiveis + 2;
-
-        for (int i = 0; i < colunasDesenho; i++) {
-            int colIndex = (int)baseColuna + i;
-            float x = colIndex * game->colunaLargura - game->cameraX;
-
-            Color laneColor = (colIndex % 2 == 0) ? waterColor : sandColor;
-            DrawRectangle((int)x,
-                          (int)game->hudAltura,
-                          (int)ceilf(game->colunaLargura) + 1,
-                          (int)(game->screenHeight - game->hudAltura),
-                          laneColor);
-        }
-
-        // Linhas horizontais (grid)
+        Color gridColor = (Color){0,0,50,120};
         for (int r = 0; r <= game->linhas; r++) {
             float y = game->hudAltura + r * game->blocoTamanho;
             DrawLine(0, (int)y, game->screenWidth, (int)y, gridColor);
         }
+
+        // DESENHO DOS BACKGROUNDS POR BLOCO (mar/areia) com scroll
+        
 
         // Obstáculos (com scroll)
         DrawObstacles(
@@ -504,6 +519,11 @@ void UnloadGame(Game *game) {
     UnloadTexture(game->obstTextures.tubaCentro);
     UnloadTexture(game->obstTextures.tubaEsq);
     UnloadTexture(game->obstTextures.tubaDir);
+
+    // Background
+    UnloadTexture(game->bgMar);
+    UnloadTexture(game->bgAreia);
+
 
 }
 
