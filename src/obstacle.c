@@ -5,27 +5,6 @@
 #include "raylib.h"
 #include <stdlib.h>
 
-
-
-// Cores temporárias para cada tipo (até ter sprites)
-static Color GetObstacleColor(ObstaculoTipo tipo) {
-    switch (tipo) {
-        // Fixos (areia)
-        case OBSTACULO_PEDRA:      return GRAY;
-        case OBSTACULO_CORAL:      return ORANGE;
-        case OBSTACULO_CONCHA:     return BEIGE;
-        case OBSTACULO_ALGA:       return GREEN;
-
-        // Móveis (mar)
-        case OBSTACULO_TUBARAO:    return RED;
-        case OBSTACULO_CARANGUEJO: return MAROON;
-        case OBSTACULO_AGUA_VIVA:  return PURPLE;
-        case OBSTACULO_BALEIA:     return BLUE;
-
-        default:                   return WHITE;
-    }
-}
-
 Obstacle *CreateObstacle(ObstaculoTipo tipo,
                          float x, float y,
                          float largura, float altura,
@@ -101,26 +80,23 @@ void UpdateObstacles(Obstacle *lista, float deltaTime, float hudAltura, float sc
         if (atual->velocidade > 0.0f) {   // móveis se mexem na VERTICAL
             atual->y += atual->direcao * atual->velocidade * deltaTime;
 
-            if (atual->velocidade > 0.0f) {   // móveis se mexem na VERTICAL
-                atual->y += atual->direcao * atual->velocidade * deltaTime;
+            float topo = hudAltura;
+            float base = screenHeight;   // <<< depois ajusto isso para usar game->blocoTamanho
 
-                // limites da área jogável
-                float topo = hudAltura;
-                float base = hudAltura + 6 * 96.0f;   // 6 linhas de 96px cada
+            // impedir subir demais
+            if (atual->y < topo) {
+                atual->y = topo;
+                atual->direcao = 1;
+            }
 
-                // impedir subir para dentro do HUD
-                if (atual->y < topo) {
-                    atual->y = topo;
-                    atual->direcao = 1;  // desce
-                }
-
-                // impedir passar do final da área de jogo
-                if (atual->y + atual->altura > base) {
-                    atual->y = base - atual->altura;
-                    atual->direcao = -1;  // sobe
-                }
+            // impedir descer demais
+            if (atual->y + atual->altura > base) {
+                atual->y = base - atual->altura;
+                atual->direcao = -1;
             }
         }
+
+
 
         // atualiza hitbox em MUNDO
         atual->hitbox.x = atual->x;
@@ -173,11 +149,18 @@ static void DrawObstacleSprite(
             sprite = tex->carangueijoParado;
             break;
 
-        // Os outros móveis ainda não entram no nível 1
         case OBSTACULO_TUBARAO:
+            sprite = tex->tubaCentro;
+            break;
+
         case OBSTACULO_AGUA_VIVA:
+            sprite = tex->aguaVivaCentro;
+            break;
+
         case OBSTACULO_BALEIA:
-            return; // não desenhar nada ainda
+            sprite = tex->baleiaParada;
+            break;
+
     }
 
     // Proporção do sprite para ocupar o mesmo espaço dos retângulos antigos

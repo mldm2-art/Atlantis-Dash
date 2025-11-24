@@ -81,5 +81,6 @@ Game InitGame(int screenWidth, int screenHeight); // função da raylib que mont
 void UpdateGame(Game *game); // função para atualizar o jogo (usa como paramêtro um ponteiro 'game' para struct 'Game')
 void DrawGame(Game *game); // função para desenhar o jogo (usa como paramêtro um ponteiro 'game' para struct 'Game')
 void UnloadGame(Game *game); // função que libera memória (texturas e listas encadeadas) (usa como paramêtro um ponteiro 'game' para struct 'Game')
+void GenerateWorldForLevel(Game *game);
 
 #endif

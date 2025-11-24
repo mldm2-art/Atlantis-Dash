@@ -6,7 +6,7 @@
 // Funções internas (estáticas)
 static void ResetPlayer(Game *game);
 static void UpdatePlayer(Game *game);
-static void GenerateWorldForLevel(Game *game);
+void GenerateWorldForLevel(Game *game);
 static void SpawnColumn(Game *game, int worldColumnIndex);
 
 // ------------------------
@@ -38,16 +38,16 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.cameraVelocidade = 384.0f;                  // pixels por segundo
 
     // Player
+    game.playerTexture = LoadTexture("assets/imgs/personagemsprite.png");
     game.player.blocoTamanho = game.blocoTamanho;
 
     // tamanho real do sprite após scale
     float scalePeixe = (game.blocoTamanho * 0.6f) / game.playerTexture.height;
-
     game.player.largura = game.playerTexture.width * scalePeixe;
     game.player.altura  = game.playerTexture.height * scalePeixe;
 
     // Texturas
-    game.playerTexture = LoadTexture("assets/imgs/personagemsprite.png");
+    
     game.backgroundTexture = LoadTexture("assets/imgs/menu_jogo.png");
     game.seletorNivelBackground = game.backgroundTexture; // por enquanto igual
 
@@ -134,74 +134,67 @@ void UpdateGame(Game *game) {
         }
     }
     else if (game->estado == JOGANDO) {
-        float delta = GetFrameTime(); 
-        // Detecta se player se mexeu
-        static float ultimoY = 0;
-        static float ultimaCameraX = 0;
+        float delta = GetFrameTime();
 
-        bool mexeu =
-            (fabs(game->player.y - ultimoY) > 0.1f) ||
-            (fabs(game->cameraX - ultimaCameraX) > 0.1f);
-
-        if (mexeu) {
-            game->tempoParado = 0;
-        } else {
-            game->tempoParado += delta;
-        }
-
-        ultimoY = game->player.y;
-        ultimaCameraX = game->cameraX;
-
-        // Se ficou parado demais → perde vida
-        if (game->tempoParado >= 5.0f) {
-            game->hud.vidas--;
-            if (game->hud.vidas <= 0) {
-                game->hud.vidas = 3;
-                GenerateWorldForLevel(game);
-            }
-            ResetPlayer(game);
-            game->tempoParado = 0;
-        }
-
-
-         // Player só sobe/desce por blocos
+        // MOVIMENTO VERTICAL
         UpdatePlayer(game);
 
-        //Movimento da camera
+        // ------ MOVIMENTO HORIZONTAL EM BLOCOS (D) ------
+        if (IsKeyPressed(KEY_D) && !game->cameraMovendo) {
+
+            float mundoX = game->player.x + game->cameraX;
+
+            Rectangle atual = {
+                mundoX + game->player.largura * 0.1f,
+                game->player.y + game->player.altura * 0.1f,
+                game->player.largura * 0.8f,
+                game->player.altura * 0.8f
+            };
+
+            Rectangle futuro = atual;
+            futuro.x += game->colunaLargura - game->player.largura * 0.2f;
+
+            Obstacle *hit = CheckCollisionPlayerObstacles(futuro, game->obstaculos);
+
+            if (hit && hit->velocidade == 0)
+                return;
+
+            if (hit && hit->velocidade > 0) {
+                GenerateWorldForLevel(game);
+                ResetPlayer(game);
+                return;
+            }
+
+            int colunaAtual = (int)floorf((game->cameraX + 1.0f) / game->colunaLargura);
+            int proximaColuna = colunaAtual + 1;
+
+            if (proximaColuna >= game->worldColumns)
+            proximaColuna = game->worldColumns - 1;
+
+
+            game->cameraDestinoX = proximaColuna * game->colunaLargura;
+            game->cameraMovendo = true;
+        }
+
+        // MOVIMENTO SUAVE DA CÂMERA
         if (game->cameraMovendo) {
             game->cameraX += game->cameraVelocidade * delta;
 
-            if (game->cameraX >= game->cameraDestinoX) {
+            if (game->cameraX >= game->cameraDestinoX - 0.5f) {
                 game->cameraX = game->cameraDestinoX;
                 game->cameraMovendo = false;
             }
         }
-        // Scroll em pixels: Apertou D → define o objetivo, o destino. E o movimento é feito suavemente depois.
-        // Inicia o movimento suave apenas se a câmera estiver parada
-        if (IsKeyPressed(KEY_D) && !game->cameraMovendo ) {
 
-            // opcional: impede de passar muito do fim do nível
-            float fimNivelX = game->worldColumns * game->colunaLargura;
-            float destino = roundf((game->cameraX + game->colunaLargura) / game->colunaLargura) * game->colunaLargura;
-
-            
-            // Se o destino passar do fim do nível, trava no fim
-            if (destino > fimNivelX) destino = fimNivelX;
-
-            game->cameraDestinoX = destino;
-            game->cameraMovendo = true;
-            
-        }
+        // GERAR / REMOVER COLUNAS
         float limiteRemocao = (game->primeiraColuna + 1) * game->colunaLargura;
 
         while (game->cameraX >= limiteRemocao) {
-            // remove obstáculos totalmente atrás da câmera
+
             RemoveObstaclesLeftOf(&game->obstaculos, game->cameraX);
 
-            // avançamos a coluna mais à esquerda
             game->primeiraColuna++;
 
-            // se ainda temos colunas de mundo para gerar à direita, gera mais
             if (game->proximaColuna < game->worldColumns) {
                 SpawnColumn(game, game->proximaColuna);
                 game->proximaColuna++;
@@ -210,58 +203,28 @@ void UpdateGame(Game *game) {
             limiteRemocao = (game->primeiraColuna + 1) * game->colunaLargura;
         }
 
-        // Atualiza movimento vertical dos móveis
+        // MOVIMENTO DOS OBSTÁCULOS
         UpdateObstacles(game->obstaculos, delta, game->hudAltura, (float)game->screenHeight);
 
-        // Atualiza hitbox do player em COORDENADAS DE MUNDO
-        game->player.hitbox.x = game->player.x + game->cameraX + game->player.largura * 0.1f;
+        // ATUALIZA HITBOX DO PLAYER
+        float mundoX = game->player.x + game->cameraX;
+        game->player.hitbox.x = mundoX + game->player.largura * 0.1f;
         game->player.hitbox.y = game->player.y + game->player.altura * 0.1f;
-        game->player.hitbox.width  = game->player.largura * 0.8f;
+        game->player.hitbox.width = game->player.largura * 0.6f;
         game->player.hitbox.height = game->player.altura * 0.8f;
 
-
-        // Colisão
-        Obstacle *hit = CheckCollisionPlayerObstacles(game->player.hitbox, game->obstaculos);
-        if (hit != NULL) {
-            // obstáculo FIXO
-            if (hit->velocidade == 0) {
-                // Cancela AVANÇO — bloqueia o D corretamente
-                game->cameraDestinoX = game->cameraX;  
-                game->cameraMovendo = false;
-            }
-            // obstáculo MÓVEL
-            else {
-                // perde vida
-                if (game->hud.vidas > 0) game->hud.vidas--;
-
-                // ainda tem vidas?
-                if (game->hud.vidas > 0) {
-                    // NÃO reseta o mundo - só volta o peixe pro lugar
-                    ResetPlayer(game);
-                }
-
-                // MORREU
-                else {
-                    game->hud.vidas = 3;
-                    GenerateWorldForLevel(game); // recria o mundo
-                    ResetPlayer(game);            // volta o peixe
-                }
-            }
-        }
-
-
-        // Fim do nível: câmera passou da última coluna de mundo
-        float fimNivelX = game->worldColumns * game->colunaLargura;
-        if (game->cameraX >= fimNivelX) {
-            game->estado = SELECAO_NIVEL;
-            DestroyObstacleList(&game->obstaculos);
-            ResetPlayer(game);
-        }
-
+        // ESC -> voltar nível
         if (IsKeyPressed(KEY_ESCAPE)) {
             game->estado = SELECAO_NIVEL;
             DestroyObstacleList(&game->obstaculos);
             ResetPlayer(game);
+        }
+
+        // SNAPPING — SEMPRE alinhado à grade
+        if (!game->cameraMovendo) {
+            float snapped = roundf(game->cameraX / game->colunaLargura) * game->colunaLargura;
+            game->cameraX = snapped;
+            game->cameraDestinoX = snapped;
         }
     }
 }
@@ -611,67 +574,93 @@ static void UpdatePlayer(Game *game) {
 
     float bloco = game->player.blocoTamanho;
 
-    // HITBOX ATUAL
-    Rectangle atual = game->player.hitbox;
-    
-    // *MOVER PARA CIMA*
+    // HITBOX ATUAL EM MUNDO
+    float mundoX = game->player.x + game->cameraX;
+    Rectangle atual = {
+        mundoX + game->player.largura * 0.1f,
+        game->player.y + game->player.altura * 0.1f,
+        game->player.largura * 0.8f,
+        game->player.altura * 0.8f
+    };
+
+    // ------- MOVER PARA CIMA -------
     if (IsKeyPressed(KEY_W)) {
         Rectangle futuro = atual;
         futuro.y -= bloco;
 
-        if (!TemObstaculoFixo(game, futuro)) {
+        Obstacle *hit = CheckCollisionPlayerObstacles(futuro, game->obstaculos);
+        
+        // LIVRE
+        if (!hit) {
             game->player.y -= bloco;
+        }
+        else {
+            // MÓVEL → morre + reinicia nível
+            if (hit->velocidade > 0) {
+                GenerateWorldForLevel(game);
+                ResetPlayer(game);
+                return;
+            }
+
+            // FIXO → BLOQUEIA
+            return;
         }
     }
 
-    // *MOVER PARA BAIXO*
+    // ------- MOVER PARA BAIXO -------
     if (IsKeyPressed(KEY_S)) {
         Rectangle futuro = atual;
         futuro.y += bloco;
 
-        if (!TemObstaculoFixo(game, futuro)) {
+        Obstacle *hit = CheckCollisionPlayerObstacles(futuro, game->obstaculos);
+        
+        if (!hit) {
             game->player.y += bloco;
         }
-    }
+        else {
+            if (hit->velocidade > 0) {
+                GenerateWorldForLevel(game);
+                ResetPlayer(game);
+                return;
+            }
 
-    // *AVANÇAR PARA FRENTE*
-    if (IsKeyPressed(KEY_D)) {
-        Rectangle futuro = atual;
-        futuro.x += game->colunaLargura;  // avança 1 coluna inteira no mundo
-
-        if (!TemObstaculoFixo(game, futuro)) {
-            game->cameraX += game->colunaLargura;
+            // FIXO → BLOQUEIA
+            return;
         }
     }
 
-    // LIMITES DE TELA
+    // LIMITES
     float minY = game->hudAltura;
     float maxY = game->hudAltura + (game->linhas - 1) * bloco;
 
     if (game->player.y < minY) game->player.y = minY;
     if (game->player.y > maxY) game->player.y = maxY;
 }
-
-
-
 // Gera colunas iniciais do nível
-static void GenerateWorldForLevel(Game *game) {
+void GenerateWorldForLevel(Game *game) {
+    // limpa lista antiga
     DestroyObstacleList(&game->obstaculos);
 
-    game->cameraX = 0.0f;
+    // reseta câmera
+    game->cameraX        = 0.0f;
+    game->cameraMovendo  = false;
+    game->cameraDestinoX = 0.0f;
     game->primeiraColuna = 0;
 
+    // quantas colunas já começam geradas
     int colunasIniciais = game->numColunasVisiveis + 5;
     if (colunasIniciais > game->worldColumns) {
         colunasIniciais = game->worldColumns;
     }
 
+    // gera do mundo as colunas 0..colunasIniciais-1
     for (int c = 0; c < colunasIniciais; c++) {
         SpawnColumn(game, c);
     }
 
     game->proximaColuna = colunasIniciais;
 }
+
 
 // Gera uma coluna do mundo (fixa ou móvel) no índice especificado
 static void SpawnColumn(Game *game, int worldColumnIndex) {
@@ -701,13 +690,41 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
 
         if (colunaMovel) {
             // MÓVEIS
-            int r = rand() % 4;
-            switch (r) {
-                case 0: tipo = OBSTACULO_TUBARAO;    velocidade = 120.0f; break;
-                case 1: tipo = OBSTACULO_CARANGUEJO; velocidade = 90.0f;  break;
-                case 2: tipo = OBSTACULO_AGUA_VIVA;  velocidade = 70.0f;  break;
-                default: tipo = OBSTACULO_BALEIA;    velocidade = 50.0f;  break;
+            int r;
+
+            // Nível 1: apenas carangueijo
+            if (game->nivelSelecionado == 0) {
+                tipo = OBSTACULO_CARANGUEJO;
+                velocidade = 90.0f;
             }
+            // Nível 2: carangueijo + água-viva
+            else if (game->nivelSelecionado == 1) {
+                r = rand() % 2;
+                switch (r) {
+                    case 0: tipo = OBSTACULO_CARANGUEJO; velocidade = 90.0f; break;
+                    case 1: tipo = OBSTACULO_AGUA_VIVA;  velocidade = 70.0f; break;
+                }
+            }
+            // Nível 3: carangueijo + água-viva + tubarão
+            else if (game->nivelSelecionado == 2) {
+                r = rand() % 3;
+                switch (r) {
+                    case 0: tipo = OBSTACULO_CARANGUEJO; velocidade = 90.0f; break;
+                    case 1: tipo = OBSTACULO_AGUA_VIVA;  velocidade = 70.0f; break;
+                    case 2: tipo = OBSTACULO_TUBARAO;    velocidade = 120.0f; break;
+                }
+            }
+            // Nível 4: todos liberados
+            else {
+                r = rand() % 4;
+                switch (r) {
+                    case 0: tipo = OBSTACULO_CARANGUEJO; velocidade = 90.0f;  break;
+                    case 1: tipo = OBSTACULO_AGUA_VIVA;  velocidade = 70.0f;  break;
+                    case 2: tipo = OBSTACULO_TUBARAO;    velocidade = 120.0f; break;
+                    default: tipo = OBSTACULO_BALEIA;    velocidade = 50.0f;  break;
+                }
+            }           
+
             direcao = 1; // descendo
 
             largura = larguraBase;
@@ -727,15 +744,17 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
             velocidade = 0.0f;
             direcao = 0;
 
-            largura = larguraBase * 0.9f;
-            altura  = game->blocoTamanho * 2.0f;
+            largura = larguraBase * 0.75f;
+            altura  = game->blocoTamanho * 1.0f;
 
             x = colunaX + (game->colunaLargura - largura) * 0.5f;
 
-            int linha = rand() % game->linhas;
-            float yBase = topoHud + linha * game->blocoTamanho;
-            // fixo "ocupando" mais de um bloco para cima
-            y = yBase + (game->blocoTamanho - altura * 0.5f);
+            // escolhe linha garantida (tem espaço para 2 blocos)
+            int linha = rand() % (game->linhas - 2);  
+
+            // posiciona exatamente em cima da linha
+            y = topoHud + linha * game->blocoTamanho;
+
         }
 
         Obstacle *o = CreateObstacle(tipo, x, y, largura, altura, velocidade, direcao);
