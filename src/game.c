@@ -206,12 +206,20 @@ void UpdateGame(Game *game) {
         // MOVIMENTO DOS OBSTÁCULOS
         UpdateObstacles(game->obstaculos, delta, game->hudAltura, (float)game->screenHeight);
 
-        // ATUALIZA HITBOX DO PLAYER
+        // ATUALIZA HITBOX DO PLAYER — agora usando o TAMANHO REAL DO SPRITE
+        float scalePeixe = (game->blocoTamanho * 0.6f) / game->playerTexture.height;
+
+        float realW = game->playerTexture.width * scalePeixe;
+        float realH = game->playerTexture.height * scalePeixe;
+
         float mundoX = game->player.x + game->cameraX;
-        game->player.hitbox.x = mundoX + game->player.largura * 0.1f;
-        game->player.hitbox.y = game->player.y + game->player.altura * 0.1f;
-        game->player.hitbox.width = game->player.largura * 0.6f;
-        game->player.hitbox.height = game->player.altura * 0.8f;
+
+        // hitbox ligeiramente menor para evitar colisão fantasma
+        game->player.hitbox.x = mundoX + realW * 0.05f;
+        game->player.hitbox.y = game->player.y + realH * 0.05f;
+
+        game->player.hitbox.width  = realW * 0.90f;
+        game->player.hitbox.height = realH * 0.90f;
 
         // ESC -> voltar nível
         if (IsKeyPressed(KEY_ESCAPE)) {
