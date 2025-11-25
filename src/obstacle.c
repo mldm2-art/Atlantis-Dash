@@ -21,7 +21,65 @@ Obstacle *CreateObstacle(ObstaculoTipo tipo,
     o->direcao = direcao;
     o->next = NULL;
 
-    o->hitbox = (Rectangle){ x, y, largura, altura };
+    // ----------------------
+    // HITBOX POR TIPO
+    // ----------------------
+    float fatorX = 0.25f;
+    float fatorY = 0.25f;
+
+    switch (tipo) {
+        // Bem pequenos
+        case OBSTACULO_CONCHA:
+            fatorX = 0.42f;
+            fatorY = 0.42f;
+            break;
+
+        // Médios
+        case OBSTACULO_PEDRA:
+            fatorX = 0.28f;
+            fatorY = 0.28f;
+            break;
+
+        case OBSTACULO_CORAL:
+            fatorX = 0.25f;
+            fatorY = 0.20f;
+            break;
+
+        // Altas e finas
+        case OBSTACULO_ALGA:
+            fatorX = 0.38f;
+            fatorY = 0.15f;
+            break;
+
+        // Mais largas
+        case OBSTACULO_CARANGUEJO:
+            fatorX = 0.20f;
+            fatorY = 0.22f;
+            break;
+
+        case OBSTACULO_AGUA_VIVA:
+            fatorX = 0.18f;
+            fatorY = 0.18f;
+            break;
+
+        // Gigantes
+        case OBSTACULO_TUBARAO:
+            fatorX = 0.15f;
+            fatorY = 0.15f;
+            break;
+
+        case OBSTACULO_BALEIA:
+            fatorX = 0.10f;
+            fatorY = 0.10f;
+            break;
+    }
+
+    o->hitbox = (Rectangle){
+        x + (largura * fatorX),
+        y + (altura  * fatorY),
+        largura * (1 - 2 * fatorX),
+        altura  * (1 - 2 * fatorY)
+};
 
     return o;
 }
@@ -95,8 +153,6 @@ void UpdateObstacles(Obstacle *lista, float deltaTime, float hudAltura, float sc
                 atual->direcao = -1;
             }
         }
-
-
 
         // atualiza hitbox em MUNDO
         atual->hitbox.x = atual->x;

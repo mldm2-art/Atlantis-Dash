@@ -144,7 +144,7 @@ void UpdateGame(Game *game) {
         UpdatePlayer(game);
 
         // ------ MOVIMENTO HORIZONTAL EM BLOCOS (D) ------
-        if (IsKeyPressed(KEY_D) && !game->cameraMovendo) {
+        if (IsKeyDown(KEY_D) && !game->cameraMovendo && game->tempoParado <= 0) {
 
             float mundoX = game->player.x + game->cameraX;
 
@@ -184,12 +184,19 @@ void UpdateGame(Game *game) {
         if (game->cameraMovendo) {
             game->cameraX += game->cameraVelocidade * delta;
 
-            if (game->cameraX >= game->cameraDestinoX - 0.5f) {
-                game->cameraX = game->cameraDestinoX;
-                game->cameraMovendo = false;
-            }
+        if (game->cameraX >= game->cameraDestinoX - 0.5f) {
+            game->cameraX = game->cameraDestinoX;
+            game->cameraMovendo = false;
         }
 
+        game->tempoParado = 0.08f;   // 👈 já deixei mais fluido pra você
+        }
+        
+        else {
+            if (game->tempoParado > 0)
+            game->tempoParado -= delta;
+        }
+        
         // GERAR / REMOVER COLUNAS
         float limiteRemocao = (game->primeiraColuna + 1) * game->colunaLargura;
 
@@ -224,6 +231,15 @@ void UpdateGame(Game *game) {
 
         game->player.hitbox.width  = realW * 0.90f;
         game->player.hitbox.height = realH * 0.90f;
+
+        // ------ COLISÃO CONTÍNUA COM OBSTÁCULOS MÓVEIS ------
+        Obstacle *colisao = CheckCollisionPlayerObstacles(game->player.hitbox, game->obstaculos);
+
+        if (colisao != NULL && colisao->velocidade > 0) {
+            GenerateWorldForLevel(game);
+            ResetPlayer(game);
+            return;
+        }
 
         // ESC -> voltar nível
         if (IsKeyPressed(KEY_ESCAPE)) {
@@ -602,59 +618,42 @@ static void UpdatePlayer(Game *game) {
 
     float bloco = game->player.blocoTamanho;
 
-    // HITBOX ATUAL EM MUNDO
     float mundoX = game->player.x + game->cameraX;
+
+    // Hitbox REAL de movimento (full size)
     Rectangle atual = {
-        mundoX + game->player.largura * 0.1f,
-        game->player.y + game->player.altura * 0.1f,
-        game->player.largura * 0.8f,
-        game->player.altura * 0.8f
+        mundoX,
+        game->player.y,
+        game->player.largura,
+        game->player.altura
     };
 
-    // ------- MOVER PARA CIMA -------
-    if (IsKeyPressed(KEY_W)) {
-        Rectangle futuro = atual;
-        futuro.y -= bloco;
+    float speed = 260.0f;
+    float delta = GetFrameTime();
 
-        Obstacle *hit = CheckCollisionPlayerObstacles(futuro, game->obstaculos);
-        
-        // LIVRE
-        if (!hit) {
-            game->player.y -= bloco;
-        }
-        else {
-            // MÓVEL → morre + reinicia nível
-            if (hit->velocidade > 0) {
-                GenerateWorldForLevel(game);
-                ResetPlayer(game);
-                return;
-            }
+    Rectangle futuro = atual;
 
-            // FIXO → BLOQUEIA
-            return;
-        }
+    // MOVER PARA CIMA (pixel)
+    if (IsKeyDown(KEY_W)) {
+    futuro.y -= speed * delta;
     }
 
-    // ------- MOVER PARA BAIXO -------
-    if (IsKeyPressed(KEY_S)) {
-        Rectangle futuro = atual;
-        futuro.y += bloco;
+    // MOVER PARA BAIXO (pixel)
+    if (IsKeyDown(KEY_S)) {
+    futuro.y += speed * delta;
+    }
 
-        Obstacle *hit = CheckCollisionPlayerObstacles(futuro, game->obstaculos);
-        
-        if (!hit) {
-            game->player.y += bloco;
-        }
-        else {
-            if (hit->velocidade > 0) {
-                GenerateWorldForLevel(game);
-                ResetPlayer(game);
-                return;
-            }
+    // Verificar colisão real (hitbox do sprite)
+    Obstacle *hit = CheckCollisionPlayerObstacles(futuro, game->obstaculos);
 
-            // FIXO → BLOQUEIA
-            return;
-        }
+    if (!hit) {
+    game->player.y = futuro.y;
+    }
+
+    else if (hit->velocidade > 0) {
+        GenerateWorldForLevel(game);
+        ResetPlayer(game);
+        return;
     }
 
     // LIMITES
