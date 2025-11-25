@@ -708,6 +708,9 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
     float margem = 6.0f;
 
     int numObs = colunaMovel ? 2 : 1;
+    float posicoesGeradas[4];
+    int gerados = 0;
+    float distanciaMinima = game->blocoTamanho * 0.9f; 
 
     for (int i = 0; i < numObs; i++) {
         ObstaculoTipo tipo;
@@ -758,7 +761,27 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
             altura  = game->blocoTamanho * 0.8f;
 
             x = colunaX + (game->colunaLargura - largura) * 0.5f;
-            y = topoHud + margem + ((float)rand() / (float)RAND_MAX) * (limiteInferior - topoHud - altura - 2*margem);
+            float zonaMin = topoHud + 10; 
+            float zonaMax = limiteInferior - altura - 10;
+
+            int tentativas = 0;
+            bool valido = false;
+
+            while (!valido && tentativas < 20) {
+                y = zonaMin + (float)rand() / RAND_MAX * (zonaMax - zonaMin);
+                valido = true;
+
+                for (int k = 0; k < gerados; k++) {
+                    if (fabsf(y - posicoesGeradas[k]) < distanciaMinima) {
+                        valido = false;
+                        break;
+                    }
+                }
+                tentativas++;
+            }
+
+            posicoesGeradas[gerados++] = y;
+
         } else {
             // FIXOS
             int r = rand() % 4;

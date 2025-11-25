@@ -136,23 +136,17 @@ void UpdateObstacles(Obstacle *lista, float deltaTime, float hudAltura, float sc
     Obstacle *atual = lista;
     while (atual != NULL) {
         if (atual->velocidade > 0.0f) {   // móveis se mexem na VERTICAL
-            atual->y += atual->direcao * atual->velocidade * deltaTime;
+            atual->y += atual->velocidade * deltaTime;
 
-            float topo = hudAltura;
-            float base = screenHeight;   // <<< depois ajusto isso para usar game->blocoTamanho
+            float limiteTopo = hudAltura;
+            float limiteBase = screenHeight;   // <<< depois ajusto isso para usar game->blocoTamanho
 
-            // impedir subir demais
-            if (atual->y < topo) {
-                atual->y = topo;
-                atual->direcao = 1;
+            if (atual->y > limiteBase) {
+                atual->y = limiteTopo + 5;   // entra logo abaixo do HUD
             }
 
-            // impedir descer demais
-            if (atual->y + atual->altura > base) {
-                atual->y = base - atual->altura;
-                atual->direcao = -1;
-            }
         }
+            
 
         // atualiza hitbox em MUNDO
         atual->hitbox.x = atual->x;
