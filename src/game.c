@@ -758,10 +758,51 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
     float limiteInferior = game->hudAltura + game->linhas * game->blocoTamanho;
     float margem = 6.0f;
 
-    int numObs = colunaMovel ? 2 : 1;
-    float posicoesGeradas[4];
-    int gerados = 0;
-    float distanciaMinima = game->blocoTamanho * 0.9f; 
+    int numObs;
+
+    // MAIS OBSTÁCULOS CONFORME O NÍVEL
+    if (colunaMovel) {
+        // COLUNAS DE MAR (MÓVEIS)
+        if (game->nivelSelecionado == 0) {
+            numObs = 2;      // 1 bicho por coluna de mar
+        }
+
+        else if (game->nivelSelecionado == 1) {
+            numObs = 2;      // 2 por coluna
+        }
+
+        else if (game->nivelSelecionado == 2) {
+            numObs = 3;      // 3 por coluna
+        }
+
+        else {
+            numObs = 4;      // 3 por coluna
+        }
+    }
+
+    else {
+        // COLUNAS DE AREIA (FIXOS)
+        if (game->nivelSelecionado == 0) {
+            numObs = 2;
+        }
+
+        else if (game->nivelSelecionado == 1) {
+            numObs = 2;
+        }
+
+        else if (game->nivelSelecionado == 2) {
+            numObs = 3;
+        }
+        
+        else {
+            numObs = 4;
+        }
+}
+
+// CONTROLE DE DISTÂNCIA VERTICAL PARA OS MÓVEIS
+float posicoesGeradas[4];
+int gerados = 0;
+float distanciaMinima = game->blocoTamanho * 0.9f;
 
     for (int i = 0; i < numObs; i++) {
         ObstaculoTipo tipo;
@@ -776,33 +817,66 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
             // Nível 1: apenas carangueijo
             if (game->nivelSelecionado == 0) {
                 tipo = OBSTACULO_CARANGUEJO;
-                velocidade = 90.0f;
+                velocidade = 60.0f; // velocidade do caranguejo
             }
-            // Nível 2: carangueijo + água-viva
+            // Nível 2: alterna por coluna de MAR (caranguejo / agua-viva)
             else if (game->nivelSelecionado == 1) {
-                r = rand() % 2;
-                switch (r) {
-                    case 0: tipo = OBSTACULO_CARANGUEJO; velocidade = 90.0f; break;
-                    case 1: tipo = OBSTACULO_AGUA_VIVA;  velocidade = 70.0f; break;
+                // Usar o índice da coluna para alternar entre os dois
+                int indiceMar = worldColumnIndex / 2;  // só conta colunas de mar
+
+                if (indiceMar % 2 == 0) {
+                    tipo = OBSTACULO_CARANGUEJO;
+                    velocidade = 60.0f;   // mais lento
+                } 
+
+                else {
+                    tipo = OBSTACULO_AGUA_VIVA;
+                    velocidade = 80.0f;   // mais rápida
                 }
             }
-            // Nível 3: carangueijo + água-viva + tubarão
+            // Nível 3: alterna por coluna de MAR (carangueijo / agua-viva / baleia)
             else if (game->nivelSelecionado == 2) {
-                r = rand() % 3;
-                switch (r) {
-                    case 0: tipo = OBSTACULO_CARANGUEJO; velocidade = 90.0f; break;
-                    case 1: tipo = OBSTACULO_AGUA_VIVA;  velocidade = 70.0f; break;
-                    case 2: tipo = OBSTACULO_TUBARAO;    velocidade = 120.0f; break;
+                int indiceMar = worldColumnIndex / 2;  // contamos só colunas de MAR
+                int contador = indiceMar % 3;          // 0, 1, 2, 0, 1, 2...
+
+                if (contador == 0) {
+                    tipo = OBSTACULO_CARANGUEJO;
+                    velocidade = 60.0f;
+                }
+
+                else if (contador == 1) {
+                    tipo = OBSTACULO_AGUA_VIVA;
+                    velocidade = 80.0f;
+                }
+
+                else {
+                    tipo = OBSTACULO_BALEIA;
+                    velocidade = 50.0f;   // mais lenta, mas grandona e perigosa
                 }
             }
-            // Nível 4: todos liberados
+            // Nível 4: alterna por coluna de MAR (carangueijo / agua-viva / tubarão / baleia)
             else {
-                r = rand() % 4;
-                switch (r) {
-                    case 0: tipo = OBSTACULO_CARANGUEJO; velocidade = 90.0f;  break;
-                    case 1: tipo = OBSTACULO_AGUA_VIVA;  velocidade = 70.0f;  break;
-                    case 2: tipo = OBSTACULO_TUBARAO;    velocidade = 120.0f; break;
-                    default: tipo = OBSTACULO_BALEIA;    velocidade = 50.0f;  break;
+                int indiceMar = worldColumnIndex / 2;  
+                int contador = indiceMar % 4;   // 0, 1, 2, 3, 0, 1...
+
+                if (contador == 0) {
+                    tipo = OBSTACULO_CARANGUEJO;
+                    velocidade = 60.0f;
+                }
+                
+                else if (contador == 1) {
+                    tipo = OBSTACULO_AGUA_VIVA;
+                    velocidade = 80.0f;
+                }
+
+                else if (contador == 2) {
+                    tipo = OBSTACULO_BALEIA;
+                    velocidade = 50.0f;   // lenta, porém gigante
+                }
+
+                else {
+                    tipo = OBSTACULO_TUBARAO;
+                    velocidade = 100.0f;   // rápido e perigoso
                 }
             }           
 
@@ -833,7 +907,9 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
 
             posicoesGeradas[gerados++] = y;
 
-        } else {
+        }
+
+        else {
             // FIXOS
             int r = rand() % 4;
             switch (r) {
@@ -842,20 +918,37 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                 case 2: tipo = OBSTACULO_CONCHA; break;
                 default: tipo = OBSTACULO_ALGA;  break;
             }
+
             velocidade = 0.0f;
             direcao = 0;
 
             largura = larguraBase * 0.75f;
-            altura  = game->blocoTamanho * 1.0f;
+            altura  = game->blocoTamanho;
 
             x = colunaX + (game->colunaLargura - largura) * 0.5f;
 
-            // escolhe linha garantida (tem espaço para 2 blocos)
-            int linha = rand() % (game->linhas - 2);  
+            int tentativas = 0;
+            bool valido = false;
 
-            // posiciona exatamente em cima da linha
-            y = topoHud + linha * game->blocoTamanho;
+            while (!valido && tentativas < 30) {
+                int linha = rand() % game->linhas;
+                y = topoHud + linha * game->blocoTamanho;
 
+                valido = true;
+
+                for (int i = 0; i < gerados; i++) {
+                    if (fabsf(y - posicoesGeradas[i]) < distanciaMinima) {
+                        valido = false;
+                        break;
+                    }
+                }
+
+                tentativas++;
+            }
+
+            if (!valido) return; // evita nascimento bugado
+
+            posicoesGeradas[gerados++] = y;
         }
 
         Obstacle *o = CreateObstacle(tipo, x, y, largura, altura, velocidade, direcao);
