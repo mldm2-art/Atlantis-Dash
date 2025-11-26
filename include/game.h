@@ -74,6 +74,7 @@ typedef struct { // struct 'Game'
     Texture2D hudTexture;
 
     // Moedas
+    int totalMoedasSalvas; // Armazena o valor lido do txt
     Texture2D moedaTexture;
     Moeda *moedas;
 

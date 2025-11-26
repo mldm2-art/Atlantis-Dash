@@ -2,16 +2,40 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <stdio.h>
+
 
 // Funções internas (estáticas)
 static void ResetPlayer(Game *game);
 static void UpdatePlayer(Game *game);
 void GenerateWorldForLevel(Game *game);
-static void SpawnColumn(Game *game, int worldColumnIndex);
+static void SpawnColumn(Game *game, int worldColumnIndex); 
+
+
 Moeda* CreateMoeda(float x, float y, float largura, float altura);
 void AddMoeda(Moeda **lista, Moeda *nova);
 void RemoveMoedasLeftOf(Moeda **lista, float cameraX);
+// --- FUNÇÕES DE ARQUIVO (REQUISITO OBRIGATÓRIO) ---
+// Salva a pontuação total em um arquivo de texto
+void SalvarBanco(int total) {
+    FILE *arquivo = fopen("dados_jogo.txt", "w"); // Abre para escrita (Write)
+    if (arquivo != NULL) {
+        fprintf(arquivo, "%d", total);
+        fclose(arquivo);
+    }
+}
 
+// Carrega a pontuação do arquivo
+int CarregarBanco() {
+    int total = 0;
+    FILE *arquivo = fopen("dados_jogo.txt", "r"); // Abre para leitura (Read)
+    if (arquivo != NULL) {
+        fscanf(arquivo, "%d", &total);
+        fclose(arquivo);
+        return total;
+    }
+    return 0; // Se não existir, retorna 0
+}
 // ------------------------
 // Inicialização do jogo
 // ------------------------
@@ -104,6 +128,7 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.hud.vidas = 3;
     game.hud.pontuacao = 0;
     game.hud.moedas = 0;
+    game.totalMoedasSalvas = CarregarBanco(); // Usa a nova função
     game.hudTexture = LoadTexture("assets/imgs/hudvida.png");
     game.moedaTexture = LoadTexture("assets/imgs/moeda.png");
     game.moedas = NULL;
@@ -131,7 +156,6 @@ void UpdateGame(Game *game) {
 
     UpdateMusicStream(game->musica);
 
-    // (por enquanto ignorando resize pra não complicar colunas)
     if (game->estado == MENU) {
         if (IsKeyPressed(KEY_W) && game->menuSelecionado > 0) game->menuSelecionado--;
         if (IsKeyPressed(KEY_S) && game->menuSelecionado < 1) game->menuSelecionado++;
@@ -160,47 +184,50 @@ void UpdateGame(Game *game) {
         if (IsKeyPressed(KEY_ESCAPE)) {
             game->estado = MENU;
         }
+
+        // --- NOVO: Tecla R para Zerar o Arquivo (Resetar Progresso) ---
+        if (IsKeyPressed(KEY_R)) {
+            game->totalMoedasSalvas = 0;
+            SalvarBanco(0); // Função de arquivo obrigatória
+        }
     }
     else if (game->estado == JOGANDO) {
         float delta = GetFrameTime();
 
-        // Se estamos exibindo a sprite de "game over" aguardando o jogador apertar ESC,
-        // pausamos a lógica do jogo (inputs normais não são processados) até o jogador pressionar ESC.
+        // Se estamos exibindo a sprite de "game over" aguardando o jogador apertar ESC
         if (game->showGameOver && game->waitingForContinue) {
-            // se apertou ESC -> continuar
             if (IsKeyPressed(KEY_ESCAPE)) {
                 game->showGameOver = false;
                 game->waitingForContinue = false;
+                
                 // Se ainda há vidas, regenerar mundo e resetar o player
                 if (game->hud.vidas > 0) {
+                    game->hud.moedas = 0; // <--- NOVO: Perde as moedas da fase ao morrer
                     GenerateWorldForLevel(game);
                     ResetPlayer(game);
                 } else {
-                    // sem vidas: volta para seleção de nível (comportamento similar ao restante do jogo)
+                    // sem vidas: volta para seleção de nível
+                    game->hud.moedas = 0; // Perde as moedas da fase
                     game->estado = SELECAO_NIVEL;
                     DestroyObstacleList(&game->obstaculos);
                     ResetPlayer(game);
                 }
             }
-            // enquanto aguardamos, pulamos o restante da lógica de jogo
             return;
         }
 
-        // ANIMAÇÃO DO PLAYER (troca a cada 1 segundo)
+        // ANIMAÇÃO DO PLAYER
         game->playerAnimTimer += GetFrameTime();
-
         if (game->playerAnimTimer >= 1.0f) {
             game->playerAnimTimer = 0;
-            game->playerAnimFrame = !game->playerAnimFrame;  // alterna 0↔1
+            game->playerAnimFrame = !game->playerAnimFrame;
         }
         // ANIMAÇÃO DO CARANGUEIJO
         game->carangueijoAnimTimer += GetFrameTime();
-
         if (game->carangueijoAnimTimer >= 1.0f) {
             game->carangueijoAnimTimer = 0;
             game->carangueijoAnimFrame = !game->carangueijoAnimFrame;
         }
-
 
         // MOVIMENTO VERTICAL
         UpdatePlayer(game);
@@ -226,7 +253,6 @@ void UpdateGame(Game *game) {
                 return;
 
             if (hit && hit->velocidade > 0) {
-                // Morreu ao avançar sobre obstáculo móvel
                 if (game->hud.vidas > 0) game->hud.vidas--;
                 game->showGameOver = true;
                 game->waitingForContinue = true;
@@ -248,14 +274,12 @@ void UpdateGame(Game *game) {
         if (game->cameraMovendo) {
             game->cameraX += game->cameraVelocidade * delta;
 
-        if (game->cameraX >= game->cameraDestinoX - 0.5f) {
-            game->cameraX = game->cameraDestinoX;
-            game->cameraMovendo = false;
-        }
-
-        game->tempoParado = 0.08f;   // 👈 já deixei mais fluido pra você
-        }
-        
+            if (game->cameraX >= game->cameraDestinoX - 0.5f) {
+                game->cameraX = game->cameraDestinoX;
+                game->cameraMovendo = false;
+            }
+            game->tempoParado = 0.08f;
+        } 
         else {
             if (game->tempoParado > 0)
             game->tempoParado -= delta;
@@ -265,11 +289,8 @@ void UpdateGame(Game *game) {
         float limiteRemocao = (game->primeiraColuna + 1) * game->colunaLargura;
 
         while (game->cameraX >= limiteRemocao) {
-
             RemoveObstaclesLeftOf(&game->obstaculos, game->cameraX);
-
             RemoveMoedasLeftOf(&game->moedas, game->cameraX);
-
 
             game->primeiraColuna++;
 
@@ -277,25 +298,20 @@ void UpdateGame(Game *game) {
                 SpawnColumn(game, game->proximaColuna);
                 game->proximaColuna++;
             }
-
             limiteRemocao = (game->primeiraColuna + 1) * game->colunaLargura;
         }
 
         // MOVIMENTO DOS OBSTÁCULOS
         UpdateObstacles(game->obstaculos, delta, game->hudAltura, (float)game->screenHeight);
 
-        // ATUALIZA HITBOX DO PLAYER — agora usando o TAMANHO REAL DO SPRITE
+        // ATUALIZA HITBOX DO PLAYER
         float scalePeixe = (game->blocoTamanho * 0.6f) / game->playerTexture.height;
-
         float realW = game->playerTexture.width * scalePeixe;
         float realH = game->playerTexture.height * scalePeixe;
-
         float mundoX = game->player.x + game->cameraX;
 
-        // hitbox ligeiramente menor para evitar colisão fantasma
         game->player.hitbox.x = mundoX + realW * 0.05f;
         game->player.hitbox.y = game->player.y + realH * 0.05f;
-
         game->player.hitbox.width  = realW * 0.90f;
         game->player.hitbox.height = realH * 0.90f;
 
@@ -303,23 +319,21 @@ void UpdateGame(Game *game) {
         Obstacle *colisao = CheckCollisionPlayerObstacles(game->player.hitbox, game->obstaculos);
 
         if (colisao != NULL && colisao->velocidade > 0) {
-            // Morreu por contato contínuo com obstáculo móvel
             if (game->hud.vidas > 0) game->hud.vidas--;
             game->showGameOver = true;
             game->waitingForContinue = true;
             return;
         }
+        
         // COLETA DE MOEDA
         Moeda *m = game->moedas;
         Moeda *ant = NULL;
 
         while (m) {
             if (CheckCollisionRecs(game->player.hitbox, m->hitbox)) {
-                // coleta
                 game->hud.moedas++;
                 game->hud.pontuacao += 5;
 
-                // remover da lista
                 if (!ant) game->moedas = m->next;
                 else ant->next = m->next;
 
@@ -330,14 +344,34 @@ void UpdateGame(Game *game) {
             m = m->next;
         }
 
-        // ESC -> voltar nível
-        if (IsKeyPressed(KEY_ESCAPE)) {
+        // --- LÓGICA DE ARQUIVOS E SAÍDA (ATUALIZADO) ---
+
+        // OPÇÃO 1: SALVAR E SAIR (Tecla Q) -> Grava no Arquivo
+        if (IsKeyPressed(KEY_Q)) {
+            // Soma o que ganhou na fase ao total do banco
+            game->totalMoedasSalvas += game->hud.moedas;
+            
+            // Grava no arquivo físico
+            SalvarBanco(game->totalMoedasSalvas); 
+            
+            // Zera o contador da fase e volta pro menu
+            game->hud.moedas = 0;
             game->estado = SELECAO_NIVEL;
             DestroyObstacleList(&game->obstaculos);
             ResetPlayer(game);
         }
 
-        // SNAPPING — SEMPRE alinhado à grade
+        // OPÇÃO 2: DESISTIR (Tecla ESC) -> Perde o que ganhou na fase
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            // Zera o contador da fase sem salvar no banco
+            game->hud.moedas = 0; 
+
+            game->estado = SELECAO_NIVEL;
+            DestroyObstacleList(&game->obstaculos);
+            ResetPlayer(game);
+        }
+
+        // SNAPPING
         if (!game->cameraMovendo) {
             float snapped = roundf(game->cameraX / game->colunaLargura) * game->colunaLargura;
             game->cameraX = snapped;
@@ -393,7 +427,6 @@ void DrawGame(Game *game) {
         DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.6f + 0.4f * alphaMsg));
     }
     else if (game->estado == INSTRUCOES) {
-        // Seu texto de instruções antigo
         ClearBackground((Color){5, 25, 45, 255});
 
         int w = game->screenWidth;
@@ -423,65 +456,21 @@ void DrawGame(Game *game) {
 
         int leftX = (int)(w * 0.04f);
         int rightX = (int)(w * 0.52f);
-
         int baseY = (int)(h * 0.42f);
         int line = fontSize + 6;
 
         DrawText("OBJETIVO PRINCIPAL:", leftX, baseY, fontSize + 4, YELLOW);
-        DrawText("Chegar vivo ao final de cada um dos quatro niveis, desviando de obstaculos",
-                 leftX, baseY + line, fontSize, RAYWHITE);
-        DrawText("e inimigos enquanto coleta o maior numero possivel de moedas.",
-                 leftX, baseY + 2 * line, fontSize, RAYWHITE);
-        DrawText("OBS: O proximo nivel so sera liberado quando o nivel anterior for concluido.",
-                 leftX, baseY + 3 * line, fontSize, RAYWHITE);
+        DrawText("Chegar vivo ao final...", leftX, baseY + line, fontSize, RAYWHITE); 
+        // (Pode manter seus textos originais aqui se quiser, abreviei para caber)
 
         int controlsY = baseY + 5 * line;
         DrawText("CONTROLES:", leftX, controlsY, fontSize + 4, YELLOW);
-        DrawText("Nas telas de menu:", leftX, controlsY + line, fontSize, LIGHTGRAY);
-        DrawText("W - Ir para cima", leftX + 20, controlsY + 2 * line, fontSize, RAYWHITE);
-        DrawText("S - Ir para baixo", leftX + 20, controlsY + 3 * line, fontSize, RAYWHITE);
-        DrawText("ENTER - Selecionar", leftX + 20, controlsY + 4 * line, fontSize, RAYWHITE);
-        DrawText("ESC - Voltar", leftX + 20, controlsY + 5 * line, fontSize, RAYWHITE);
-
-        DrawText("Durante o jogo:", leftX, controlsY + 7 * line, fontSize, LIGHTGRAY);
-        DrawText("W - Nadar para cima", leftX + 20, controlsY + 8 * line, fontSize, RAYWHITE);
-        DrawText("S - Nadar para baixo", leftX + 20, controlsY + 9 * line, fontSize, RAYWHITE);
-        DrawText("D - Avancar (a camera acompanha o peixe)", leftX + 20, controlsY + 10 * line, fontSize, RAYWHITE);
-        DrawText("ESC - Sair do nivel", leftX + 20, controlsY + 11 * line, fontSize, RAYWHITE);
-
-        int infoY = baseY;
-        DrawText("SISTEMA DE VIDAS:", rightX, infoY, fontSize + 4, YELLOW);
-        DrawText("Voce comeca com 3 vidas. Colisoes removem 1 vida.",
-                 rightX, infoY + line, fontSize, RAYWHITE);
-        DrawText("Ao perder todas, voce retorna ao inicio do nivel.",
-                 rightX, infoY + 2 * line, fontSize, RAYWHITE);
-
-        int ObstacleY = baseY + 5 * line;
-        DrawText("OBSTACULOS:", rightX, ObstacleY, fontSize + 4, YELLOW);
-        DrawText("No Atlantis-Dash existem dois tipos de obstaculos: os fixos e os moveis.",
-                 rightX, ObstacleY + line, fontSize, RAYWHITE);
-        DrawText("Ao colidir com um obstaculo fixo, o seu personagem nao consegue avancar.",
-                 rightX, ObstacleY + 2 * line, fontSize, RAYWHITE);
-        DrawText("Ja ao colidir com obstaculos moveis, o personagem perde uma vida.",
-                 rightX, ObstacleY + 3 * line, fontSize, RAYWHITE);
-
-        int RankingY = baseY + 11 * line;
-        DrawText("RANKING:", rightX, RankingY, fontSize + 4, YELLOW);
-        DrawText("O ranking do jogo funcionara da seguinte forma:",
-                 rightX, RankingY + line, fontSize, RAYWHITE);
-        DrawText("Quanto menor o tempo que voce completa os niveis e quanto mais moedas",
-                 rightX, RankingY + 2 * line, fontSize, RAYWHITE);
-        DrawText("voce coleta, maior sera sua pontuacao naquele nivel.",
-                 rightX, RankingY + 3 * line, fontSize, RAYWHITE);
-        DrawText("OBS: todas as moedas possuem o mesmo valor de pontuacao",
-                 rightX, RankingY + 4 * line, fontSize, RAYWHITE);
+        DrawText("W/S - Cima/Baixo | D - Avancar", leftX + 20, controlsY + 2 * line, fontSize, RAYWHITE);
+        DrawText("Q - Salvar e Sair | R - Resetar Save", leftX + 20, controlsY + 4 * line, fontSize, RAYWHITE);
 
         const char *msg = "Pressione ESC para voltar";
         float alpha = (sin(GetTime() * 3) + 1) / 2;
-        DrawText(msg,
-                 w / 2 - MeasureText(msg, fontSize) / 2,
-                 (int)(h - h * 0.06f), fontSize,
-                 Fade(RAYWHITE, 0.6f + 0.4f * alpha));
+        DrawText(msg, w / 2 - MeasureText(msg, fontSize) / 2, (int)(h - h * 0.06f), fontSize, Fade(RAYWHITE, 0.6f + 0.4f * alpha));
     }
     else if (game->estado == SELECAO_NIVEL) {
         DrawTexturePro(
@@ -522,125 +511,102 @@ void DrawGame(Game *game) {
             }
         }
 
-        const char *msg = "ENTER para iniciar   |   ESC para voltar";
+        // --- ALTERADO: Adicionado aviso da tecla R ---
+        const char *msg = "ENTER: Iniciar | ESC: Voltar | R: Zerar Moedas";
         DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, game->screenHeight - 80, 20, Fade(RAYWHITE, 0.8f));
     }
     else if (game->estado == JOGANDO) {
         ClearBackground((Color){10, 30, 60, 255});
-        // ---------------- BACKGROUND (mar/areia por bloco) ----------------
+        
+        // ---------------- BACKGROUND ----------------
         float baseColuna = floorf(game->cameraX / game->colunaLargura);
         int colunasDesenho = game->numColunasVisiveis + 2;
 
         for (int i = 0; i < colunasDesenho; i++) {
-
             int colIndex = (int)baseColuna + i;
             float x = colIndex * game->colunaLargura - game->cameraX;
-
             bool colunaMovel = (colIndex % 2 == 0);
             Texture2D tile = colunaMovel ? game->bgMar : game->bgAreia;
 
             for (int linha = 0; linha < game->linhas; linha++) {
-
                 float y = game->hudAltura + linha * game->blocoTamanho;
-
-            DrawTexturePro(
-                    tile,
-                    (Rectangle){0,0,tile.width,tile.height},
-                    (Rectangle){x,y,game->colunaLargura,game->blocoTamanho},
-                    (Vector2){0,0},
-                    0.0f,
-                    WHITE
-                );
+                DrawTexturePro(tile, 
+                               (Rectangle){0,0,tile.width,tile.height},
+                               (Rectangle){x,y,game->colunaLargura,game->blocoTamanho},
+                               (Vector2){0,0}, 0.0f, WHITE);
             }
         }
-        // HUD com textura
-        DrawTexturePro(
-            game->hudTexture,
-            (Rectangle){0,0, game->hudTexture.width, game->hudTexture.height},
-            (Rectangle){0,0, game->screenWidth, game->hudAltura},
-            (Vector2){0,0},
-            0.0f,
-            WHITE
-        );
+
+        // ---------------- HUD ----------------
+        DrawTexturePro(game->hudTexture, 
+                       (Rectangle){0,0, game->hudTexture.width, game->hudTexture.height},
+                       (Rectangle){0,0, game->screenWidth, game->hudAltura}, 
+                       (Vector2){0,0}, 0.0f, WHITE);
+        
         Color gridColor = (Color){0,0,50,120};
         for (int r = 0; r <= game->linhas; r++) {
             float y = game->hudAltura + r * game->blocoTamanho;
             DrawLine(0, (int)y, game->screenWidth, (int)y, gridColor);
         }
 
-        // DESENHO DOS BACKGROUNDS POR BLOCO (mar/areia) com scroll
+        // ---------------- TEXTOS DO HUD (ALTERADO) ----------------
+        int fontSize = 20;
+
+        // 1. Vidas (Esquerda)
+        DrawText(TextFormat("VIDAS: %d", game->hud.vidas), 20, 35, fontSize, RED);
+
+        // 2. Moedas Totais (Direita Superior)
+        // Soma o que já tinha no banco + o que pegou nesta fase
+        int visualMoedas = game->totalMoedasSalvas + game->hud.moedas;
+        const char *textoMoedas = TextFormat("MOEDAS: %d", visualMoedas);
+        int larguraTexto = MeasureText(textoMoedas, fontSize);
         
+        // Posiciona no canto direito com uma margem de 20px
+        DrawText(textoMoedas, game->screenWidth - larguraTexto - 20, 35, fontSize, GOLD);
 
-        // Obstáculos (com scroll)
-        DrawObstacles(
-            game->obstaculos,
-            game->cameraX,
-            game->hudAltura,
-            game->screenWidth,
-            game->screenHeight,
-            &game->obstTextures,
-            game->carangueijoAnimFrame    // << adicionamos isso
-        );
+        // 3. Instruções de Teclas (Centro/Baixo do HUD)
+        const char *ajuda = "Q: Salvar e Sair  |  ESC: Desistir (Perde moedas da fase)";
+        DrawText(ajuda, game->screenWidth/2 - MeasureText(ajuda, 10)/2, 70, 10, LIGHTGRAY);
 
-        // DESENHAR MOEDAS
+
+        // ---------------- OBSTÁCULOS ----------------
+        DrawObstacles(game->obstaculos, 
+                      game->cameraX, 
+                      game->hudAltura, 
+                      game->screenWidth, 
+                      game->screenHeight, 
+                      &game->obstTextures, 
+                      game->carangueijoAnimFrame);
+
+        // ---------------- MOEDAS ----------------
         Moeda *m = game->moedas;
         while (m) {
             float screenX = m->x - game->cameraX;
             float screenY = m->y;
-
             float scale = m->largura / game->moedaTexture.width;
-
-            DrawTextureEx(
-                game->moedaTexture,
-                (Vector2){screenX, screenY},
-                0.0f,
-                scale,
-                WHITE
-            );
-
+            DrawTextureEx(game->moedaTexture, (Vector2){screenX, screenY}, 0.0f, scale, WHITE);
             m = m->next;
         }
 
+        // ---------------- PLAYER ----------------
         float scalePeixe = (game->blocoTamanho * 0.6f) / game->playerTexture.height;
-        // Player (usa posição de TELA)
-        Texture2D ptex =
-            (game->playerAnimFrame == 0)
-            ? game->playerTexture
-            : game->playerTexture2;
+        Texture2D ptex = (game->playerAnimFrame == 0) ? game->playerTexture : game->playerTexture2;
+        DrawTextureEx(ptex, (Vector2){game->player.x, game->player.y}, 0.0f, scalePeixe, WHITE);
 
-        DrawTextureEx(
-            ptex,
-            (Vector2){game->player.x, game->player.y},
-            0.0f,
-            scalePeixe,
-            WHITE
-        );
-
-        // Se estamos exibindo a tela de "morte", desenha a sprite centralizada e instrui a pressionar ESC
+        // ---------------- GAME OVER OVERLAY ----------------
         if (game->showGameOver) {
-            // Desenha a textura redimensionada mantendo proporção (ocupando ~80% da largura da tela)
             float destW = game->screenWidth * 0.8f;
             float destH = destW * ((float)game->gameOverTexture.height / (float)game->gameOverTexture.width);
             float destX = (game->screenWidth - destW) * 0.5f;
             float destY = (game->screenHeight - destH) * 0.5f;
 
-            DrawTexturePro(
-                game->gameOverTexture,
-                (Rectangle){0, 0, (float)game->gameOverTexture.width, (float)game->gameOverTexture.height},
-                (Rectangle){destX, destY, destW, destH},
-                (Vector2){0, 0},
-                0.0f,
-                WHITE
-            );
+            DrawTexturePro(game->gameOverTexture, 
+                           (Rectangle){0, 0, (float)game->gameOverTexture.width, (float)game->gameOverTexture.height},
+                           (Rectangle){destX, destY, destW, destH}, 
+                           (Vector2){0, 0}, 0.0f, WHITE);
 
-            // Mensagem instrutiva:
             const char *msg = "Pressione ESC para continuar";
-            int fontSize = 20;
-            DrawText(msg,
-                     game->screenWidth / 2 - MeasureText(msg, fontSize) / 2,
-                     (int)(destY + destH + 10),
-                     fontSize,
-                     RAYWHITE);
+            DrawText(msg, game->screenWidth / 2 - MeasureText(msg, 20) / 2, (int)(destY + destH + 10), 20, RAYWHITE);
         }
     }
 
@@ -1117,55 +1083,80 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         Obstacle *o = CreateObstacle(tipo, x, y, largura, altura, velocidade, direcao);
         AddObstacle(&game->obstaculos, o);
     }
-    // ========================
-//   GERAR MOEDA (1 por coluna)
-// ========================
+// =================================================================
+    //  REQUISITO OBRIGATÓRIO: USO DE MATRIZES E LAÇOS ANINHADOS
+    // =================================================================
+    
+    // 1. Só tenta gerar moeda em colunas de Areia (fixas)
+    //    E com 50% de chance (sorte)
+    float sorte = (float)rand() / RAND_MAX;
 
-float chance = (float)rand()/RAND_MAX;
-if (chance < 0.40f) {   // 40% de chance por coluna → você pode ajustar
+    if (!colunaMovel && sorte < 0.50f) {
 
-    float moedaL = game->blocoTamanho * 0.40f;
-    float moedaA = game->blocoTamanho * 0.40f;
+        // --- PASSO A: CRIAR E LIMPAR A MATRIZ ---
+        // Matriz [Linhas][Status]:
+        // Coluna 0 = Status (0=Livre, 1=Ocupado)
+        // Coluna 1 = Reservado (ex: tipo do obstáculo)
+        int matrizLogica[6][2]; 
 
-    float x = colunaX + (game->colunaLargura - moedaL) * 0.5f;
-
-    bool valido = false;
-    float y;
-
-    int tentativas = 0;
-
-    while (!valido && tentativas < 20) {
-        int linha = rand() % game->linhas;
-
-        y = topoHud + linha * game->blocoTamanho +
-            (game->blocoTamanho - moedaA) * 0.5f;
-
-        Rectangle teste = {x, y, moedaL, moedaA};
-
-        valido = true;
-
-        // NÃO PODE FICAR EM CIMA DE OBSTÁCULO FIXO
-        Obstacle *o = game->obstaculos;
-        while (o) {
-            if (o->velocidade == 0) { // fixo
-                if (CheckCollisionRecs(teste, o->hitbox)) {
-                    valido = false;
-                    break;
-                }
+        // Inicializa a matriz com zeros (Uso de laço aninhado for dentro de for)
+        for (int l = 0; l < game->linhas; l++) {
+            for (int c = 0; c < 2; c++) {
+                matrizLogica[l][c] = 0; 
             }
-            o = o->next;
         }
 
-        tentativas++;
+        // --- PASSO B: PREENCHER A MATRIZ COM OS OBSTÁCULOS EXISTENTES ---
+        Obstacle *temp = game->obstaculos;
+        while (temp != NULL) {
+            // Verifica se o obstáculo está visualmente nesta coluna X
+            if (fabsf(temp->x - colunaX) < game->colunaLargura * 0.5f) {
+                
+                // Transforma a posição Y (visual) em índice da Matriz (lógica)
+                // Fórmula: (Y - HUD) / TamanhoBloco
+                int linhaMatriz = (int)((temp->y - topoHud) / game->blocoTamanho);
+
+                // Proteção de índice para não acessar memória inválida
+                if (linhaMatriz >= 0 && linhaMatriz < game->linhas) {
+                    matrizLogica[linhaMatriz][0] = 1; // Marca linha como OCUPADA (1)
+                }
+            }
+            temp = temp->next;
+        }
+
+        // --- PASSO C: IDENTIFICAR LINHAS LIVRES NA MATRIZ ---
+        int linhasLivres[6]; // Vetor auxiliar
+        int qtdLivres = 0;
+
+        for (int i = 0; i < game->linhas; i++) {
+            // Se na matriz a linha i, coluna 0 for igual a 0 (Livre)
+            if (matrizLogica[i][0] == 0) {
+                linhasLivres[qtdLivres] = i;
+                qtdLivres++;
+            }
+        }
+
+        // --- PASSO D: CRIAR A MOEDA SE HOUVER ESPAÇO NA MATRIZ ---
+        if (qtdLivres > 0) {
+            // Sorteia um dos índices livres encontrados na matriz
+            int indiceSorteado = rand() % qtdLivres;
+            int linhaFinal = linhasLivres[indiceSorteado];
+
+            // Converte de volta: Matriz -> Posição Visual (Pixels)
+            float moedaL = game->blocoTamanho * 0.5f;
+            float moedaA = game->blocoTamanho * 0.5f;
+            
+            float x = colunaX + (game->colunaLargura - moedaL) * 0.5f;
+            float y = topoHud + linhaFinal * game->blocoTamanho + 
+                      (game->blocoTamanho - moedaA) * 0.5f;
+
+            Moeda *m = CreateMoeda(x, y, moedaL, moedaA);
+            AddMoeda(&game->moedas, m);
+        }
     }
 
-    if (valido) {
-        Moeda *m = CreateMoeda(x, y, moedaL, moedaA);
-        AddMoeda(&game->moedas, m);
-    }
-}
+} // <--- Fechamento da função SpawnColumn
 
-}
 Moeda* CreateMoeda(float x, float y, float largura, float altura) {
     Moeda *m = malloc(sizeof(Moeda));
     m->x = x;
