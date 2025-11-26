@@ -15,12 +15,11 @@ typedef enum {
 } GameState;
 
 // Estrutura do jogador (peixe):
-typedef struct { // struct 'Player' que traz as características do nosso personagem (peixe)
-    float x, y; // posição na TELA (x fixo, y em blocos) obs:podemos mudar para y em pixels
-    float largura, altura; // dimensões do sprite do peixe
-    float blocoTamanho; // distancia entre as linhas (Cada W/S move exatamente 1 bloco)
-    Rectangle hitbox; // define a hitbox do peixe hitbox.x = player.x (sempre será a mesma, pois quem anda é a tela) + camera.X (muda a cada vez que  'D' é apertado)
-                     // por isso que o hitbox do peixe é essa soma, pois vai saber a posição real do peixe no MUNDO, e não na tela em si (já que a colisão ocorre no MUNDO)
+typedef struct { 
+    float x, y;
+    float largura, altura; 
+    float blocoTamanho; 
+    Rectangle hitbox; 
 } Player;
 
 typedef struct {
@@ -81,7 +80,7 @@ typedef struct { // struct 'Game'
 
 
     // Obstáculos (lista encadeada):
-    Obstacle *obstaculos; // ponteiro 'obstaculos' do tipo 'Obstacle' para o primeiro nó da lista encadeada de obstáculos (é como se fosse o ponteiro 'head')
+    Obstacle *obstaculos; 
     
     //animacao obstaculos
     float carangueijoAnimTimer;

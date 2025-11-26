@@ -21,22 +21,22 @@ typedef enum {
     OBSTACULO_BALEIA
 } ObstaculoTipo;
 
-// Nó da lista encadeada de obstáculos
+
 typedef struct Obstacle {
     ObstaculoTipo tipo;
 
-    // posição no MUNDO (NÃO é posição na tela)
-    float x;       // horizontal
-    float y;       // vertical
+    
+    float x;       
+    float y;       
 
     float largura;
     float altura;
 
-    Rectangle hitbox; // em coordenadas de MUNDO
+    Rectangle hitbox; 
 
-    // Movimento vertical (para móveis)
-    float velocidade;  // pixels por segundo (0 se for fixo)
-    int direcao;       // +1 = descendo, -1 = subindo, 0 = parado
+    
+    float velocidade;  
+    int direcao;       
 
     struct Obstacle *next;
 } Obstacle;
