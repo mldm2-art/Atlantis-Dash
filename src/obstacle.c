@@ -191,7 +191,10 @@ static void DrawObstacleSprite(
     Obstacle *o,
     float cameraX,
     ObstacleTextures *tex,
-    int carangueijoFrame
+    int carangueijoFrame,
+    int aguaVivaFrame,
+    int baleiaFrame,
+    int tubaraoFrame     
 ) {
     float screenX = o->x - cameraX;
     float screenY = o->y;
@@ -232,15 +235,34 @@ static void DrawObstacleSprite(
 
 
         case OBSTACULO_TUBARAO:
-            sprite = tex->tubaCentro;
+            if (tubaraoFrame == 0)
+                sprite = tex->tubaCentro;      // centro
+            else if (tubaraoFrame == 1)
+                sprite = tex->tubaDir;         // direita
+            else if (tubaraoFrame == 2)
+                sprite = tex->tubaCentro;      // centro
+            else
+                sprite = tex->tubaEsq;         // esquerda
             break;
+
 
         case OBSTACULO_AGUA_VIVA:
-            sprite = tex->aguaVivaCentro;
+            if (aguaVivaFrame == 0)
+                sprite = tex->aguaVivaCentro;
+            else if (aguaVivaFrame == 1)
+                sprite = tex->aguaVivaDir;
+            else if (aguaVivaFrame == 2)
+                sprite = tex->aguaVivaCentro;
+            else
+                sprite = tex->aguaVivaEsq;
             break;
 
+
         case OBSTACULO_BALEIA:
-            sprite = tex->baleiaParada;
+            if (baleiaFrame == 0)
+                sprite = tex->baleiaParada;
+            else
+                sprite = tex->baleiaAnimada;
             break;
 
     }
@@ -264,7 +286,10 @@ void DrawObstacles(Obstacle *lista,
                    int screenWidth,
                    int screenHeight, 
                    ObstacleTextures *texRef,
-                   int carangueijoFrame) {
+                   int carangueijoFrame,
+                   int aguaVivaFrame, 
+                   int baleiaFrame, 
+                   int tubaraoFrame) {
     (void)hudAltura;
 
     Obstacle *atual = lista;
@@ -276,7 +301,7 @@ void DrawObstacles(Obstacle *lista,
             screenY + atual->altura >= hudAltura && screenY <= screenHeight) {
 
             // Agora desenhamos o sprite correspondente ao tipo do obstáculo
-            DrawObstacleSprite(atual, cameraX, texRef, carangueijoFrame);
+            DrawObstacleSprite(atual, cameraX, texRef, carangueijoFrame, aguaVivaFrame, baleiaFrame, tubaraoFrame);
 
         }
 

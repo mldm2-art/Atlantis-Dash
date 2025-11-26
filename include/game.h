@@ -86,6 +86,15 @@ typedef struct { // struct 'Game'
     //animacao obstaculos
     float carangueijoAnimTimer;
     int carangueijoAnimFrame;
+    float aguaVivaAnimTimer;
+    int aguaVivaAnimFrame;  // 0 = centro, 1 = direita, 2 = centro, 3 = esquerda
+    float baleiaAnimTimer;
+    int baleiaAnimFrame;   // 0 = parada, 1 = animada
+    float tubaraoAnimTimer;
+    int tubaraoAnimFrame;   // 0..3 (centro → dir → centro → esq)
+
+
+
     // Mundo em colunas + câmera:
     float cameraX;             // deslocamento horizontal da câmera em pixels (quanto mundo já “rolou” para a esquerda)
     float cameraDestinoX;   // posição atual é cameraX e a posição de destino(cameraDestinoX) é: cameraX + larguraDeUmBloco. -> Depois disso a câmera vai deslizando até chegar nesse destino.

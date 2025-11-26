@@ -145,6 +145,14 @@ Game InitGame(int screenWidth, int screenHeight) {
     // animacao obstaculos
     game.carangueijoAnimTimer = 0;
     game.carangueijoAnimFrame = 0;
+    game.aguaVivaAnimTimer = 0;
+    game.aguaVivaAnimFrame = 0;
+    game.baleiaAnimTimer = 0;
+    game.baleiaAnimFrame = 0;
+    game.tubaraoAnimTimer = 0;
+    game.tubaraoAnimFrame = 0;
+
+
 
     return game;
 }
@@ -228,6 +236,33 @@ void UpdateGame(Game *game) {
             game->carangueijoAnimTimer = 0;
             game->carangueijoAnimFrame = !game->carangueijoAnimFrame;
         }
+        // ANIMAÇÃO DA ÁGUA-VIVA
+        game->aguaVivaAnimTimer += GetFrameTime();
+        if (game->aguaVivaAnimTimer >= 0.20f) {
+            game->aguaVivaAnimTimer = 0;
+            game->aguaVivaAnimFrame++;
+
+            if (game->aguaVivaAnimFrame > 3)
+                game->aguaVivaAnimFrame = 0;
+        }
+        // ANIMAÇÃO DA BALEIA
+        game->baleiaAnimTimer += GetFrameTime();
+        if (game->baleiaAnimTimer >= 0.30f) {   // <-- muda de frame a cada 1 segundo
+            game->baleiaAnimTimer = 0;
+            game->baleiaAnimFrame = !game->baleiaAnimFrame;   // alterna 0 ↔ 1
+        }
+        // ANIMAÇÃO DO TUBARÃO
+        game->tubaraoAnimTimer += GetFrameTime();
+        if (game->tubaraoAnimTimer >= 0.10f) {   // 1 segundo entre frames
+            game->tubaraoAnimTimer = 0;
+            game->tubaraoAnimFrame++;
+
+            if (game->tubaraoAnimFrame > 3)     // 4 frames: 0..3
+                game->tubaraoAnimFrame = 0;
+        }
+
+
+
 
         // MOVIMENTO VERTICAL
         UpdatePlayer(game);
@@ -576,7 +611,10 @@ void DrawGame(Game *game) {
                       game->screenWidth, 
                       game->screenHeight, 
                       &game->obstTextures, 
-                      game->carangueijoAnimFrame);
+                      game->carangueijoAnimFrame,
+                      game->aguaVivaAnimFrame, 
+                      game->baleiaAnimFrame,
+                      game->tubaraoAnimFrame);
 
         // ---------------- MOEDAS ----------------
         Moeda *m = game->moedas;

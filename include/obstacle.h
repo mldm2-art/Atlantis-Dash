@@ -64,7 +64,11 @@ void DrawObstacles(Obstacle *lista,
                    int screenWidth,
                    int screenHeight, 
                    ObstacleTextures *tex,
-                   int carangueijoFrame);
+                   int carangueijoFrame,
+                   int aguaVivaFrame, 
+                   int baleiaframe, 
+                   int tubaraoFrame);
+                   
 
 // Colisão do player (hitbox em coordenadas de MUNDO) com qualquer obstáculo
 Obstacle *CheckCollisionPlayerObstacles(Rectangle playerHitbox, Obstacle *lista);
