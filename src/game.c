@@ -19,11 +19,6 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.musica = LoadMusicStream("assets/sons/musica.mp3");
     PlayMusicStream(game.musica);
 
-
-
-
-
-
     game.screenWidth = screenWidth;
     game.screenHeight = screenHeight;
     game.estado = MENU;
@@ -51,8 +46,6 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.playerAnimFrame = 0;   // começa com o sprite original
 
     game.player.blocoTamanho = game.blocoTamanho;
-
-    
 
     // tamanho real do sprite após scale
     float scalePeixe = (game.blocoTamanho * 0.6f) / game.playerTexture.height;
@@ -97,7 +90,10 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.bgMar   = LoadTexture("assets/imgs/mar.png");
     game.bgAreia = LoadTexture("assets/imgs/areia.png");
 
-
+    // SPRITE GAME OVER (overlay exibida quando perde vida)
+    game.gameOverTexture = LoadTexture("assets/imgs/game_over.png"); // coloque o arquivo em assets/imgs/
+    game.showGameOver = false;
+    game.waitingForContinue = false;
 
     // Menus / HUD
     game.menuSelecionado = 0;
@@ -126,8 +122,6 @@ Game InitGame(int screenWidth, int screenHeight) {
 void UpdateGame(Game *game) {
 
     UpdateMusicStream(game->musica);
-
-
 
     // (por enquanto ignorando resize pra não complicar colunas)
     if (game->estado == MENU) {
@@ -161,6 +155,28 @@ void UpdateGame(Game *game) {
     }
     else if (game->estado == JOGANDO) {
         float delta = GetFrameTime();
+
+        // Se estamos exibindo a sprite de "game over" aguardando o jogador apertar ESC,
+        // pausamos a lógica do jogo (inputs normais não são processados) até o jogador pressionar ESC.
+        if (game->showGameOver && game->waitingForContinue) {
+            // se apertou ESC -> continuar
+            if (IsKeyPressed(KEY_ESCAPE)) {
+                game->showGameOver = false;
+                game->waitingForContinue = false;
+                // Se ainda há vidas, regenerar mundo e resetar o player
+                if (game->hud.vidas > 0) {
+                    GenerateWorldForLevel(game);
+                    ResetPlayer(game);
+                } else {
+                    // sem vidas: volta para seleção de nível (comportamento similar ao restante do jogo)
+                    game->estado = SELECAO_NIVEL;
+                    DestroyObstacleList(&game->obstaculos);
+                    ResetPlayer(game);
+                }
+            }
+            // enquanto aguardamos, pulamos o restante da lógica de jogo
+            return;
+        }
 
         // ANIMAÇÃO DO PLAYER (troca a cada 1 segundo)
         game->playerAnimTimer += GetFrameTime();
@@ -202,8 +218,10 @@ void UpdateGame(Game *game) {
                 return;
 
             if (hit && hit->velocidade > 0) {
-                GenerateWorldForLevel(game);
-                ResetPlayer(game);
+                // Morreu ao avançar sobre obstáculo móvel
+                if (game->hud.vidas > 0) game->hud.vidas--;
+                game->showGameOver = true;
+                game->waitingForContinue = true;
                 return;
             }
 
@@ -274,8 +292,10 @@ void UpdateGame(Game *game) {
         Obstacle *colisao = CheckCollisionPlayerObstacles(game->player.hitbox, game->obstaculos);
 
         if (colisao != NULL && colisao->velocidade > 0) {
-            GenerateWorldForLevel(game);
-            ResetPlayer(game);
+            // Morreu por contato contínuo com obstáculo móvel
+            if (game->hud.vidas > 0) game->hud.vidas--;
+            game->showGameOver = true;
+            game->waitingForContinue = true;
             return;
         }
 
@@ -544,6 +564,32 @@ void DrawGame(Game *game) {
             WHITE
         );
 
+        // Se estamos exibindo a tela de "morte", desenha a sprite centralizada e instrui a pressionar ESC
+        if (game->showGameOver) {
+            // Desenha a textura redimensionada mantendo proporção (ocupando ~80% da largura da tela)
+            float destW = game->screenWidth * 0.8f;
+            float destH = destW * ((float)game->gameOverTexture.height / (float)game->gameOverTexture.width);
+            float destX = (game->screenWidth - destW) * 0.5f;
+            float destY = (game->screenHeight - destH) * 0.5f;
+
+            DrawTexturePro(
+                game->gameOverTexture,
+                (Rectangle){0, 0, (float)game->gameOverTexture.width, (float)game->gameOverTexture.height},
+                (Rectangle){destX, destY, destW, destH},
+                (Vector2){0, 0},
+                0.0f,
+                WHITE
+            );
+
+            // Mensagem instrutiva:
+            const char *msg = "Pressione ESC para continuar";
+            int fontSize = 20;
+            DrawText(msg,
+                     game->screenWidth / 2 - MeasureText(msg, fontSize) / 2,
+                     (int)(destY + destH + 10),
+                     fontSize,
+                     RAYWHITE);
+        }
     }
 
     EndDrawing();
@@ -586,12 +632,13 @@ void UnloadGame(Game *game) {
     // Background
     UnloadTexture(game->bgMar);
     UnloadTexture(game->bgAreia);
+
+    // Game over sprite
+    UnloadTexture(game->gameOverTexture);
+
     //musica
     UnloadMusicStream(game->musica);
     CloseAudioDevice();
-
-
-
 }
 
 // ------------------------
@@ -702,8 +749,10 @@ static void UpdatePlayer(Game *game) {
     }
 
     else if (hit->velocidade > 0) {
-        GenerateWorldForLevel(game);
-        ResetPlayer(game);
+        // Morreu por obstáculo móvel: decrementar vida e mostrar overlay "game over"
+        if (game->hud.vidas > 0) game->hud.vidas--;
+        game->showGameOver = true;
+        game->waitingForContinue = true; // aguardamos ESC para continuar
         return;
     }
 
@@ -831,7 +880,7 @@ float distanciaMinima = game->blocoTamanho * 0.9f;
 
                 else {
                     tipo = OBSTACULO_AGUA_VIVA;
-                    velocidade = 80.0f;   // mais rápida
+                    velocidade = 80.0f;   // mais rápida
                 }
             }
             // Nível 3: alterna por coluna de MAR (carangueijo / agua-viva / baleia)

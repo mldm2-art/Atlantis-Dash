@@ -4,6 +4,7 @@
 #include "raylib.h" // bilibioteca gráfica que possui diversas funções próprias como a Texture, a Draw
 #include "obstacle.h" // Estruturas e funções de obstáculos (lista encadeada)
 #include "textures.h"
+#include <stdbool.h> // para usar bool no struct Game
 
 // Estados do jogo (telas):
 typedef enum {
@@ -57,7 +58,10 @@ typedef struct { // struct 'Game'
     Texture2D bgMar;
     Texture2D bgAreia;
 
-
+    // Sprite exibida quando o personagem perde uma vida
+    Texture2D gameOverTexture;  // sprite "game_over" (assets/imgs/game_over.png)
+    bool showGameOver;          // true enquanto a sprite estiver sendo mostrada
+    bool waitingForContinue;    // true se estamos aguardando o jogador apertar ESC para continuar
 
     // Menus:
     int menuSelecionado; // índice dos botões da tela de MENU (JOGAR e INTRUÇÕES) que é 0 ou 1
