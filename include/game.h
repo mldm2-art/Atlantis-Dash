@@ -24,10 +24,18 @@ typedef struct { // struct 'Player' que traz as características do nosso person
 } Player;
 
 typedef struct {
-    int vidas;
     int pontuacao;
     int moedas;
+    int vidas;
 } HUD;
+
+typedef struct Moeda {
+    float x, y;
+    float largura, altura;
+    Rectangle hitbox;
+    struct Moeda *next;
+} Moeda;
+
 
 // Estrutura principal do jogo:
 typedef struct { // struct 'Game' 
@@ -58,17 +66,18 @@ typedef struct { // struct 'Game'
     Texture2D bgMar;
     Texture2D bgAreia;
 
-    // Sprite exibida quando o personagem perde uma vida
-    Texture2D gameOverTexture;  // sprite "game_over" (assets/imgs/game_over.png)
-    bool showGameOver;          // true enquanto a sprite estiver sendo mostrada
-    bool waitingForContinue;    // true se estamos aguardando o jogador apertar ESC para continuar
-
+    
     // Menus:
     int menuSelecionado; // índice dos botões da tela de MENU (JOGAR e INTRUÇÕES) que é 0 ou 1
     int nivelSelecionado; // índice dos botões da tela de SELEÇÃO DE NÍVEL (NÍVEL 1, NÍVEL 2, NÍVEL 3 e NÍVEL 4) que é de 0 a 3
 
     HUD hud; // criação da variável 'hud' do tipo 'HUD'
     Texture2D hudTexture;
+
+    // Moedas
+    Texture2D moedaTexture;
+    Moeda *moedas;
+
 
 
     // Obstáculos (lista encadeada):
@@ -83,6 +92,11 @@ typedef struct { // struct 'Game'
     bool cameraMovendo; // a camera ta andando agr? true: ta se movendo, flase: ta parada (impede que o jogador aperte d varias vezes enquanto a cameta ta andando)
     float cameraVelocidade; // pixels por frame, velocidade da camera
     float tempoParado;
+
+    Texture2D gameOverTexture;
+    bool showGameOver;
+    bool waitingForContinue;
+
 
 
     int numColunasVisiveis;    // quantidade de colunas que vemos por tela (7 por tela) obs:podemos aumentar isso também

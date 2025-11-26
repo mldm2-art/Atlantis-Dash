@@ -14,20 +14,27 @@ SRCS := $(wildcard $(SRC_DIR)/*.c)
 # Flags de compilação
 CFLAGS = -Wall -I$(INCLUDE_DIR)
 
-# Bibliotecas a serem linkadas
-LIBS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+# Detecta o sistema operacional
+UNAME_S := $(shell uname -s)
 
-# Regra principal: compilar tudo
+ifeq ($(UNAME_S), Linux)
+	# Linux (Ubuntu)
+	LIBS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+endif
+
+ifeq ($(UNAME_S), Darwin)
+	# macOS
+	LIBS = -lraylib -framework OpenGL -framework Cocoa -framework IOKit
+endif
+
+# Regra principal
 all: $(EXEC_NAME)
 
-# Como gerar o executável
 $(EXEC_NAME): $(SRCS)
 	$(CC) $(SRCS) $(CFLAGS) $(LIBS) -o $(EXEC_NAME)
 
-# Comando para rodar o jogo diretamente
 run: all
 	./$(EXEC_NAME)
 
-# Limpeza do projeto
 clean:
 	rm -f $(EXEC_NAME)

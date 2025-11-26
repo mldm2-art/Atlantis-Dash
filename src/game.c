@@ -8,6 +8,9 @@ static void ResetPlayer(Game *game);
 static void UpdatePlayer(Game *game);
 void GenerateWorldForLevel(Game *game);
 static void SpawnColumn(Game *game, int worldColumnIndex);
+Moeda* CreateMoeda(float x, float y, float largura, float altura);
+void AddMoeda(Moeda **lista, Moeda *nova);
+void RemoveMoedasLeftOf(Moeda **lista, float cameraX);
 
 // ------------------------
 // Inicialização do jogo
@@ -102,6 +105,9 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.hud.pontuacao = 0;
     game.hud.moedas = 0;
     game.hudTexture = LoadTexture("assets/imgs/hudvida.png");
+    game.moedaTexture = LoadTexture("assets/imgs/moeda.png");
+    game.moedas = NULL;
+
 
 
     // Obstáculos
@@ -262,6 +268,9 @@ void UpdateGame(Game *game) {
 
             RemoveObstaclesLeftOf(&game->obstaculos, game->cameraX);
 
+            RemoveMoedasLeftOf(&game->moedas, game->cameraX);
+
+
             game->primeiraColuna++;
 
             if (game->proximaColuna < game->worldColumns) {
@@ -299,6 +308,26 @@ void UpdateGame(Game *game) {
             game->showGameOver = true;
             game->waitingForContinue = true;
             return;
+        }
+        // COLETA DE MOEDA
+        Moeda *m = game->moedas;
+        Moeda *ant = NULL;
+
+        while (m) {
+            if (CheckCollisionRecs(game->player.hitbox, m->hitbox)) {
+                // coleta
+                game->hud.moedas++;
+                game->hud.pontuacao += 5;
+
+                // remover da lista
+                if (!ant) game->moedas = m->next;
+                else ant->next = m->next;
+
+                free(m);
+                break;
+            }
+            ant = m;
+            m = m->next;
         }
 
         // ESC -> voltar nível
@@ -552,6 +581,26 @@ void DrawGame(Game *game) {
             &game->obstTextures,
             game->carangueijoAnimFrame    // << adicionamos isso
         );
+
+        // DESENHAR MOEDAS
+        Moeda *m = game->moedas;
+        while (m) {
+            float screenX = m->x - game->cameraX;
+            float screenY = m->y;
+
+            float scale = m->largura / game->moedaTexture.width;
+
+            DrawTextureEx(
+                game->moedaTexture,
+                (Vector2){screenX, screenY},
+                0.0f,
+                scale,
+                WHITE
+            );
+
+            m = m->next;
+        }
+
         float scalePeixe = (game->blocoTamanho * 0.6f) / game->playerTexture.height;
         // Player (usa posição de TELA)
         Texture2D ptex =
@@ -640,6 +689,9 @@ void UnloadGame(Game *game) {
     UnloadTexture(game->gameOverTexture);
     // hud sprite
     UnloadTexture(game->hudTexture);
+    //moeda
+    UnloadTexture(game->moedaTexture);
+
 
 
     //musica
@@ -820,7 +872,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         
         // COLUNAS DE MAR (MÓVEIS)
         if (game->nivelSelecionado == 0) {
-            numObs = 1;      // 1 bicho por coluna de mar
+            numObs = 2;      // 1 bicho por coluna de mar
         }
 
         else if (game->nivelSelecionado == 1) {
@@ -832,7 +884,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         }
 
         else {
-            numObs = 2;      // 3 por coluna
+            numObs = 3;      // 3 por coluna
         }
     }
 
@@ -847,7 +899,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         }
 
         else if (game->nivelSelecionado == 2) {
-            numObs = 2;
+            numObs = 3;
         }
         
         else {
@@ -896,7 +948,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                     tipo = OBSTACULO_AGUA_VIVA;
                     velocidade = 80.0f;   // mais rápida
                     largura = larguraBase * 1.2f;
-                    altura  = game->blocoTamanho * 0.9f;
+                    altura  = game->blocoTamanho * 1.1f;
                 }
             }
             // Nível 3: alterna por coluna de MAR (carangueijo / agua-viva / baleia)
@@ -915,14 +967,14 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                     tipo = OBSTACULO_AGUA_VIVA;
                     velocidade = 80.0f;
                     largura = larguraBase * 1.2f;
-                    altura  = game->blocoTamanho * 0.9f;
+                    altura  = game->blocoTamanho * 1.1f;
                 }
 
                 else {
                     tipo = OBSTACULO_BALEIA;
                     velocidade = 50.0f;   // mais lenta, mas grandona e perigosa
-                    largura = larguraBase * 1.8f;
-                    altura  = game->blocoTamanho * 1.4f;  // ocupa 2 blocos
+                    largura = larguraBase * 2.2f;
+                    altura  = game->blocoTamanho * 2.0f;  // ocupa 2 blocos
                     
                 }
             }
@@ -942,56 +994,36 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                     tipo = OBSTACULO_AGUA_VIVA;
                     velocidade = 80.0f;
                     largura = larguraBase * 1.2f;
-                    altura  = game->blocoTamanho * 0.9f;
+                    altura  = game->blocoTamanho * 1.1f;
                 }
 
                 else if (contador == 2) {
                     tipo = OBSTACULO_BALEIA;
                     velocidade = 50.0f;   // lenta, porém gigante
-                    largura = larguraBase * 1.8f;
-                    altura  = game->blocoTamanho * 1.4f;  // ocupa 2 blocos
+                    largura = larguraBase * 2.2f;
+                    altura  = game->blocoTamanho * 2.0f;  // ocupa 2 blocos
                     
                 }
 
                 else {
                     tipo = OBSTACULO_TUBARAO;
                     velocidade = 100.0f;   // rápido e perigoso
-                    largura = larguraBase * 1.5f;
-                    altura  = game->blocoTamanho * 1.1f;
+                    largura = larguraBase * 1.8f;
+                    altura  = game->blocoTamanho * 1.4f;
                 }
             }
-
             if (tipo == OBSTACULO_BALEIA) {
-                distanciaMinima = altura * 1.5f;     // baleia precisa de MAIS espaço
-            } 
-            
-            else if (tipo == OBSTACULO_TUBARAO) {
-                distanciaMinima = altura * 1.25f;  // distância entre os tubarões
-            }
-
-            else {
-                distanciaMinima = altura * 1.00f; // distância caranguejo e água viva
+                distanciaMinima = altura * 1.1f;     // baleia precisa de MAIS espaço
+            } else {
+                distanciaMinima = game->blocoTamanho * 0.9f;  // padrão dos outros
             }
 
             direcao = 1; // descendo
 
             
-            float ajuste = 0.0f;
-            // ajuste fino só para os maiores
-            if (tipo == OBSTACULO_BALEIA) {
-                ajuste = game->colunaLargura * 0.35f;
-            }
-
-
-            else if (tipo == OBSTACULO_TUBARAO) {
-                ajuste = game->colunaLargura * 0.28f;
-            }
-
-            x = colunaX + (game->colunaLargura - largura) * 0.5f + ajuste;
-        
-
-            float zonaMin = topoHud + (game->blocoTamanho * 0.2f); 
-            float zonaMax = limiteInferior - altura - (game->blocoTamanho * 0.2f);
+            x = colunaX + (game->colunaLargura - largura) * 0.5f;
+            float zonaMin = topoHud + 10; 
+            float zonaMax = limiteInferior - altura - 10;
 
             int tentativas = 0;
             bool valido = false;
@@ -1001,14 +1033,11 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                 valido = true;
 
                 for (int k = 0; k < gerados; k++) {
-                    float outraY = posicoesGeradas[k];
-
-                    if ((y < outraY + altura + 5) && (y + altura + 5 > outraY)) {
+                    if (fabsf(y - posicoesGeradas[k]) < distanciaMinima) {
                         valido = false;
                         break;
                     }
                 }
-
                 tentativas++;
             }
 
@@ -1029,21 +1058,17 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
             velocidade = 0.0f;
             direcao = 0;
 
-            largura = game->blocoTamanho * 0.55f;
-            altura  = game->blocoTamanho * 0.55f;
+            largura = larguraBase * 0.75f;
+            altura  = game->blocoTamanho;
 
-            x = colunaX + (game->colunaLargura / 2) - (largura / 2);
+            x = colunaX + (game->colunaLargura - largura) * 0.5f;
 
             int tentativas = 0;
             bool valido = false;
 
             while (!valido && tentativas < 30) {
                 int linha = rand() % game->linhas;
-                y = topoHud + linha * game->blocoTamanho 
-                    + (game->blocoTamanho / 2) 
-                    - (altura / 2);
-
-                y += game->blocoTamanho * 0.05f;
+                y = topoHud + linha * game->blocoTamanho;
 
                 valido = true;
 
@@ -1057,7 +1082,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                 tentativas++;
             }
 
-            if (!valido) break; 
+            if (!valido) return; // evita nascimento bugado
 
             posicoesGeradas[gerados++] = y;
         }
@@ -1065,4 +1090,91 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         Obstacle *o = CreateObstacle(tipo, x, y, largura, altura, velocidade, direcao);
         AddObstacle(&game->obstaculos, o);
     }
+    // ========================
+//   GERAR MOEDA (1 por coluna)
+// ========================
+
+float chance = (float)rand()/RAND_MAX;
+if (chance < 0.40f) {   // 40% de chance por coluna → você pode ajustar
+
+    float moedaL = game->blocoTamanho * 0.40f;
+    float moedaA = game->blocoTamanho * 0.40f;
+
+    float x = colunaX + (game->colunaLargura - moedaL) * 0.5f;
+
+    bool valido = false;
+    float y;
+
+    int tentativas = 0;
+
+    while (!valido && tentativas < 20) {
+        int linha = rand() % game->linhas;
+
+        y = topoHud + linha * game->blocoTamanho +
+            (game->blocoTamanho - moedaA) * 0.5f;
+
+        Rectangle teste = {x, y, moedaL, moedaA};
+
+        valido = true;
+
+        // NÃO PODE FICAR EM CIMA DE OBSTÁCULO FIXO
+        Obstacle *o = game->obstaculos;
+        while (o) {
+            if (o->velocidade == 0) { // fixo
+                if (CheckCollisionRecs(teste, o->hitbox)) {
+                    valido = false;
+                    break;
+                }
+            }
+            o = o->next;
+        }
+
+        tentativas++;
+    }
+
+    if (valido) {
+        Moeda *m = CreateMoeda(x, y, moedaL, moedaA);
+        AddMoeda(&game->moedas, m);
+    }
 }
+
+}
+Moeda* CreateMoeda(float x, float y, float largura, float altura) {
+    Moeda *m = malloc(sizeof(Moeda));
+    m->x = x;
+    m->y = y;
+    m->largura = largura;
+    m->altura  = altura;
+    m->hitbox = (Rectangle){x, y, largura, altura};
+    m->next = NULL;
+    return m;
+}
+
+void AddMoeda(Moeda **lista, Moeda *nova) {
+    if (!*lista) {
+        *lista = nova;
+        return;
+    }
+    Moeda *atual = *lista;
+    while (atual->next) atual = atual->next;
+    atual->next = nova;
+}
+
+void RemoveMoedasLeftOf(Moeda **lista, float cameraX) {
+    Moeda *atual = *lista, *ant = NULL;
+
+    while (atual) {
+        if (atual->x + atual->largura < cameraX - 10) {
+            Moeda *rem = atual;
+            if (!ant) *lista = atual->next;
+            else ant->next = atual->next;
+            atual = (ant ? ant->next : *lista);
+            free(rem);
+        } else {
+            ant = atual;
+            atual = atual->next;
+        }
+    }
+}
+
+
