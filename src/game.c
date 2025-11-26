@@ -101,6 +101,8 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.hud.vidas = 3;
     game.hud.pontuacao = 0;
     game.hud.moedas = 0;
+    game.hudTexture = LoadTexture("assets/imgs/hudvida.png");
+
 
     // Obstáculos
     game.obstaculos = NULL;
@@ -522,14 +524,15 @@ void DrawGame(Game *game) {
                 );
             }
         }
-
-
-    
-        // HUD
-        DrawRectangle(0, 0, game->screenWidth, game->hudAltura, (Color){20, 50, 80, 255});
-        DrawText(TextFormat("Nivel %d", game->nivelSelecionado + 1), 10, 10, 20, RAYWHITE);
-        DrawText(TextFormat("Vidas: %d", game->hud.vidas), 150, 10, 20, RAYWHITE);
-
+        // HUD com textura
+        DrawTexturePro(
+            game->hudTexture,
+            (Rectangle){0,0, game->hudTexture.width, game->hudTexture.height},
+            (Rectangle){0,0, game->screenWidth, game->hudAltura},
+            (Vector2){0,0},
+            0.0f,
+            WHITE
+        );
         Color gridColor = (Color){0,0,50,120};
         for (int r = 0; r <= game->linhas; r++) {
             float y = game->hudAltura + r * game->blocoTamanho;
@@ -635,6 +638,9 @@ void UnloadGame(Game *game) {
 
     // Game over sprite
     UnloadTexture(game->gameOverTexture);
+    // hud sprite
+    UnloadTexture(game->hudTexture);
+
 
     //musica
     UnloadMusicStream(game->musica);
@@ -811,6 +817,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
 
     // MAIS OBSTÁCULOS CONFORME O NÍVEL
     if (colunaMovel) {
+        
         // COLUNAS DE MAR (MÓVEIS)
         if (game->nivelSelecionado == 0) {
             numObs = 2;      // 1 bicho por coluna de mar
@@ -821,11 +828,11 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         }
 
         else if (game->nivelSelecionado == 2) {
-            numObs = 3;      // 3 por coluna
+            numObs = 2;      // 3 por coluna
         }
 
         else {
-            numObs = 4;      // 3 por coluna
+            numObs = 3;      // 3 por coluna
         }
     }
 
@@ -846,18 +853,21 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         else {
             numObs = 4;
         }
-}
+    }
 
-// CONTROLE DE DISTÂNCIA VERTICAL PARA OS MÓVEIS
-float posicoesGeradas[4];
-int gerados = 0;
-float distanciaMinima = game->blocoTamanho * 0.9f;
+
+    // CONTROLE DE DISTÂNCIA VERTICAL PARA OS MÓVEIS
+    float posicoesGeradas[4];
+    int gerados = 0;
+    //float distanciaMinima = game->blocoTamanho * 0.9f;
+
 
     for (int i = 0; i < numObs; i++) {
         ObstaculoTipo tipo;
         float velocidade = 0.0f;
         int direcao = 0;
         float largura, altura, x, y;
+        float distanciaMinima;
 
         if (colunaMovel) {
             // MÓVEIS
@@ -867,6 +877,8 @@ float distanciaMinima = game->blocoTamanho * 0.9f;
             if (game->nivelSelecionado == 0) {
                 tipo = OBSTACULO_CARANGUEJO;
                 velocidade = 60.0f; // velocidade do caranguejo
+                largura = larguraBase * 0.9f;
+                altura  = game->blocoTamanho * 0.8f;
             }
             // Nível 2: alterna por coluna de MAR (caranguejo / agua-viva)
             else if (game->nivelSelecionado == 1) {
@@ -876,11 +888,15 @@ float distanciaMinima = game->blocoTamanho * 0.9f;
                 if (indiceMar % 2 == 0) {
                     tipo = OBSTACULO_CARANGUEJO;
                     velocidade = 60.0f;   // mais lento
+                    largura = larguraBase * 0.9f;
+                    altura  = game->blocoTamanho * 0.8f;
                 } 
 
                 else {
                     tipo = OBSTACULO_AGUA_VIVA;
                     velocidade = 80.0f;   // mais rápida
+                    largura = larguraBase * 1.2f;
+                    altura  = game->blocoTamanho * 1.1f;
                 }
             }
             // Nível 3: alterna por coluna de MAR (carangueijo / agua-viva / baleia)
@@ -891,16 +907,23 @@ float distanciaMinima = game->blocoTamanho * 0.9f;
                 if (contador == 0) {
                     tipo = OBSTACULO_CARANGUEJO;
                     velocidade = 60.0f;
+                    largura = larguraBase * 0.9f;
+                    altura  = game->blocoTamanho * 0.8f;
                 }
 
                 else if (contador == 1) {
                     tipo = OBSTACULO_AGUA_VIVA;
                     velocidade = 80.0f;
+                    largura = larguraBase * 1.2f;
+                    altura  = game->blocoTamanho * 1.1f;
                 }
 
                 else {
                     tipo = OBSTACULO_BALEIA;
                     velocidade = 50.0f;   // mais lenta, mas grandona e perigosa
+                    largura = larguraBase * 2.2f;
+                    altura  = game->blocoTamanho * 2.0f;  // ocupa 2 blocos
+                    
                 }
             }
             // Nível 4: alterna por coluna de MAR (carangueijo / agua-viva / tubarão / baleia)
@@ -911,29 +934,41 @@ float distanciaMinima = game->blocoTamanho * 0.9f;
                 if (contador == 0) {
                     tipo = OBSTACULO_CARANGUEJO;
                     velocidade = 60.0f;
+                    largura = larguraBase * 0.9f;
+                    altura  = game->blocoTamanho * 0.8f;
                 }
                 
                 else if (contador == 1) {
                     tipo = OBSTACULO_AGUA_VIVA;
                     velocidade = 80.0f;
+                    largura = larguraBase * 1.2f;
+                    altura  = game->blocoTamanho * 1.1f;
                 }
 
                 else if (contador == 2) {
                     tipo = OBSTACULO_BALEIA;
                     velocidade = 50.0f;   // lenta, porém gigante
+                    largura = larguraBase * 2.2f;
+                    altura  = game->blocoTamanho * 2.0f;  // ocupa 2 blocos
+                    
                 }
 
                 else {
                     tipo = OBSTACULO_TUBARAO;
                     velocidade = 100.0f;   // rápido e perigoso
+                    largura = larguraBase * 1.8f;
+                    altura  = game->blocoTamanho * 1.4f;
                 }
-            }           
+            }
+            if (tipo == OBSTACULO_BALEIA) {
+                distanciaMinima = altura * 1.1f;     // baleia precisa de MAIS espaço
+            } else {
+                distanciaMinima = game->blocoTamanho * 0.9f;  // padrão dos outros
+            }
 
             direcao = 1; // descendo
 
-            largura = larguraBase;
-            altura  = game->blocoTamanho * 0.8f;
-
+            
             x = colunaX + (game->colunaLargura - largura) * 0.5f;
             float zonaMin = topoHud + 10; 
             float zonaMax = limiteInferior - altura - 10;

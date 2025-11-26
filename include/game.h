@@ -68,6 +68,8 @@ typedef struct { // struct 'Game'
     int nivelSelecionado; // índice dos botões da tela de SELEÇÃO DE NÍVEL (NÍVEL 1, NÍVEL 2, NÍVEL 3 e NÍVEL 4) que é de 0 a 3
 
     HUD hud; // criação da variável 'hud' do tipo 'HUD'
+    Texture2D hudTexture;
+
 
     // Obstáculos (lista encadeada):
     Obstacle *obstaculos; // ponteiro 'obstaculos' do tipo 'Obstacle' para o primeiro nó da lista encadeada de obstáculos (é como se fosse o ponteiro 'head')
