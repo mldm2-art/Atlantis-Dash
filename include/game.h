@@ -44,6 +44,10 @@ typedef struct { // struct 'Game'
     // Player:
     Player player; // criação de uma variável chamada 'player' do tipo 'Player'
     Texture2D playerTexture; // sprite do peixe vem aqui 
+    Texture2D playerTexture2;   // segundo sprite do peixe
+    float playerAnimTimer;      // contador interno
+    int playerAnimFrame;        // 0 ou 1 para alternar sprites
+
 
     // Fundos:
     Texture2D backgroundTexture; // a gente tem uma imagem salva chamada 'menu_jogo.png em 'assets/imgs' 
@@ -53,6 +57,8 @@ typedef struct { // struct 'Game'
     Texture2D bgMar;
     Texture2D bgAreia;
 
+
+
     // Menus:
     int menuSelecionado; // índice dos botões da tela de MENU (JOGAR e INTRUÇÕES) que é 0 ou 1
     int nivelSelecionado; // índice dos botões da tela de SELEÇÃO DE NÍVEL (NÍVEL 1, NÍVEL 2, NÍVEL 3 e NÍVEL 4) que é de 0 a 3
@@ -61,7 +67,10 @@ typedef struct { // struct 'Game'
 
     // Obstáculos (lista encadeada):
     Obstacle *obstaculos; // ponteiro 'obstaculos' do tipo 'Obstacle' para o primeiro nó da lista encadeada de obstáculos (é como se fosse o ponteiro 'head')
-
+    
+    //animacao obstaculos
+    float carangueijoAnimTimer;
+    int carangueijoAnimFrame;
     // Mundo em colunas + câmera:
     float cameraX;             // deslocamento horizontal da câmera em pixels (quanto mundo já “rolou” para a esquerda)
     float cameraDestinoX;   // posição atual é cameraX e a posição de destino(cameraDestinoX) é: cameraX + larguraDeUmBloco. -> Depois disso a câmera vai deslizando até chegar nesse destino.

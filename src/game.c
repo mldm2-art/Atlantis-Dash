@@ -39,7 +39,13 @@ Game InitGame(int screenWidth, int screenHeight) {
 
     // Player
     game.playerTexture = LoadTexture("assets/imgs/personagemsprite.png");
+    game.playerTexture2 = LoadTexture("assets/imgs/peixeanimado.png");
+    game.playerAnimTimer = 0;
+    game.playerAnimFrame = 0;   // começa com o sprite original
+
     game.player.blocoTamanho = game.blocoTamanho;
+
+    
 
     // tamanho real do sprite após scale
     float scalePeixe = (game.blocoTamanho * 0.6f) / game.playerTexture.height;
@@ -100,6 +106,10 @@ Game InitGame(int screenWidth, int screenHeight) {
 
     ResetPlayer(&game);
 
+    // animacao obstaculos
+    game.carangueijoAnimTimer = 0;
+    game.carangueijoAnimFrame = 0;
+
     return game;
 }
 
@@ -139,6 +149,22 @@ void UpdateGame(Game *game) {
     }
     else if (game->estado == JOGANDO) {
         float delta = GetFrameTime();
+
+        // ANIMAÇÃO DO PLAYER (troca a cada 1 segundo)
+        game->playerAnimTimer += GetFrameTime();
+
+        if (game->playerAnimTimer >= 1.0f) {
+            game->playerAnimTimer = 0;
+            game->playerAnimFrame = !game->playerAnimFrame;  // alterna 0↔1
+        }
+        // ANIMAÇÃO DO CARANGUEIJO
+        game->carangueijoAnimTimer += GetFrameTime();
+
+        if (game->carangueijoAnimTimer >= 1.0f) {
+            game->carangueijoAnimTimer = 0;
+            game->carangueijoAnimFrame = !game->carangueijoAnimFrame;
+        }
+
 
         // MOVIMENTO VERTICAL
         UpdatePlayer(game);
@@ -488,17 +514,24 @@ void DrawGame(Game *game) {
             game->hudAltura,
             game->screenWidth,
             game->screenHeight,
-            &game->obstTextures   // << adicionamos isso
+            &game->obstTextures,
+            game->carangueijoAnimFrame    // << adicionamos isso
         );
         float scalePeixe = (game->blocoTamanho * 0.6f) / game->playerTexture.height;
         // Player (usa posição de TELA)
+        Texture2D ptex =
+            (game->playerAnimFrame == 0)
+            ? game->playerTexture
+            : game->playerTexture2;
+
         DrawTextureEx(
-            game->playerTexture,
+            ptex,
             (Vector2){game->player.x, game->player.y},
             0.0f,
             scalePeixe,
             WHITE
         );
+
     }
 
     EndDrawing();
@@ -509,6 +542,8 @@ void DrawGame(Game *game) {
 // ------------------------
 void UnloadGame(Game *game) {
     UnloadTexture(game->playerTexture);
+    UnloadTexture(game->playerTexture2);
+
     UnloadTexture(game->backgroundTexture);
     DestroyObstacleList(&game->obstaculos);
         // FIXOS

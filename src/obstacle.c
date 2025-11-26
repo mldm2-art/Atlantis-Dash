@@ -162,7 +162,8 @@ void UpdateObstacles(Obstacle *lista, float deltaTime, float hudAltura, float sc
 static void DrawObstacleSprite(
     Obstacle *o,
     float cameraX,
-    ObstacleTextures *tex
+    ObstacleTextures *tex,
+    int carangueijoFrame
 ) {
     float screenX = o->x - cameraX;
     float screenY = o->y;
@@ -195,9 +196,12 @@ static void DrawObstacleSprite(
         // MÓVEIS (só carangueijo no nível 1)
         
         case OBSTACULO_CARANGUEJO:
-            // por enquanto sem animação:
-            sprite = tex->carangueijoParado;
+            if (carangueijoFrame == 0)
+                sprite = tex->carangueijoParado;
+            else
+                sprite = tex->carangueijoAnim;
             break;
+
 
         case OBSTACULO_TUBARAO:
             sprite = tex->tubaCentro;
@@ -231,7 +235,8 @@ void DrawObstacles(Obstacle *lista,
                    float hudAltura,
                    int screenWidth,
                    int screenHeight, 
-                   ObstacleTextures *texRef) {
+                   ObstacleTextures *texRef,
+                   int carangueijoFrame) {
     (void)hudAltura;
 
     Obstacle *atual = lista;
@@ -243,7 +248,7 @@ void DrawObstacles(Obstacle *lista,
             screenY + atual->altura >= hudAltura && screenY <= screenHeight) {
 
             // Agora desenhamos o sprite correspondente ao tipo do obstáculo
-            DrawObstacleSprite(atual, cameraX, texRef);
+            DrawObstacleSprite(atual, cameraX, texRef, carangueijoFrame);
 
         }
 
