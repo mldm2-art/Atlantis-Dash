@@ -1,73 +1,214 @@
-# Atlantis Dash🌊
-**Atlantis Dash** é um jogo de ação arcade para um jogador onde cada movimento conta. Guie seu personagem por traiçoeiras rotas oceânicas, planejando seu caminho para desviar de predadores famintos e obstáculos mortais. O objetivo é sobreviver e completar quatro níveis desafiadores, usando apenas sua astúcia e reflexos.
+
+# 🌊 **Atlantis Dash**
+
+**Atlantis Dash** é um jogo de ação estilo arcade onde cada movimento importa.  
+Guie seu peixe através de rotas oceânicas cheias de perigos, evitando predadores e obstáculos.  
+O objetivo é **sobreviver e completar os quatro níveis**.
+
+---
+
+## 🔧 **Instalação de dependências e RUN**
 
 <details>
-  <summary><h2>Ferramentas Utilizadas⚒️</h2></summary>
+<summary><strong>Instalando Dependências (Raylib)</strong></summary>
 
-  - **Linguagem:** C (C99)
-  - **Biblioteca Gráfica:** [Raylib](https://www.raylib.com/)
-  - **IDE:** [VS Code](https://code.visualstudio.com/)
-  - **Ambiente de Desenvolvimento:** Linha de comando em **Linux** (via WSL) ou **macOS**
-  - **Controle de Versão:** GitHub
+Para compilar o jogo, você precisa instalar a biblioteca **Raylib**.
+
+### **macOS**
+Instale via Homebrew:
+```sh
+brew install raylib
+````
+
+### **Ubuntu / Linux**
+
+```sh
+sudo apt update
+sudo apt install libraylib-dev libraylib-bin
+```
+
+### **Windows (WSL recomendado)**
+
+#### **WSL**
+
+Instale Raylib como no Ubuntu:
+
+```sh
+sudo apt update
+sudo apt install libraylib-dev libraylib-bin
+```
+
+#### **Windows Nativo**
+
+Baixe a Raylib:
+👉 [https://github.com/raysan5/raylib](https://github.com/raysan5/raylib)
+
 </details>
 
-<details>
-  <summary><h2>Equipe de Desenvolvedores👥</h2></summary>
+---
 
-  Esse jogo foi desenvolvido por estudantes da Cesar School, para a disciplina de Programação Imperativa Funcional!
+<details>
+<summary><strong>Build e Execução</strong></summary>
+
+Para limpar, compilar e executar:
+
+```sh
+make clean
+make run
+```
+
+</details>
+
+---
+
+## ⚒️ **Ferramentas Utilizadas**
+
+<details>
+<summary><strong>Ver ferramentas</strong></summary>
+
+**Linguagem:**
+
+* C (C99)
+
+**Biblioteca Gráfica:**
+
+* Raylib
+
+**IDE:**
+
+* VS Code
+
+**Ambiente:**
+
+* Linux (WSL)
+* macOS
+
+**Controle de Versão:**
+
+* GitHub
+
+</details>
+
+---
+
+## 👥 **Equipe de Desenvolvedores**
+
+<details>
+<summary><strong>Ver equipe</strong></summary>
+
+Projeto desenvolvido por estudantes da **Cesar School** para a disciplina de
+**Programação Imperativa Funcional**.
 
 **Desenvolvedores:**
-  - Rodrigo Paiva - https://github.com/rodrigopaiva06
-  - Maria Luísa Muniz - https://github.com/mldm2-art
-  - Hélio de Moraes - https://github.com/helioblaster
-  - Pedro Coutinho - https://github.com/Pedro-Coutinho2612
+
+* Rodrigo Paiva — [https://github.com/rodrigopaiva06](https://github.com/rodrigopaiva06)
+* Maria Luísa Muniz — [https://github.com/mldm2-art](https://github.com/mldm2-art)
+* Hélio de Moraes — [https://github.com/helioblaster](https://github.com/helioblaster)
+* Pedro Coutinho — [https://github.com/Pedro-Coutinho2612](https://github.com/Pedro-Coutinho2612)
+
 </details>
+
+---
+
+## 🎮 **Game Design Document (GDD)**
 
 <details>
-  <summary><h2>Game Design Document (GDD)🎮</h2></summary>
-  
-  **1.Título e Introdução:**
-  - **Nome:** Atlantis-Dash
-  - **Descrição:** 
-  - **Inspiração:** Crossy Road
-  - **Objetivo principal do jogador:**
-    
-  **2.Mecânicas de jogo:**
-  - **Movimentação do personagem:**
-    O jogador é um peixe que se move apenas em 3 direções: direita, cima e baixo. Cada movimento terá a mesma distância e o jogador não poderá sair da tela.
-  - **Obstáculos e perigos marinhos:**
-    Fixos: Pedras, corais, conchas e algas.
-    Móveis: Tubarões, carangueijos, águas-vivas e baleias.
-  - **Níveis de dificuldade:**
-    - Nível 1:
-    - Nível 2:
-    - Nível 3:
-    - Nível 4:
-  - **Colisões e condições de derrota:**
-    Ao colidir com um obstáculo fixo, o seu personagem fica parado (não consegue avançar). Já ao colidir com obstáculos móveis, o personagem perde uma vida. 
+<summary><strong>Ver GDD</strong></summary>
 
-  **3.Controles:**
-  - **Nas telas de menu (telas não jogáveis):**
-  W → ir para a opção de cima
-  S → ir para a opção de baixo
-  Enter → Selecionar opção
-  Esc → Voltar para a tela anterior
+### **1. Título e Introdução**
 
-  - Nas telas de jogo (telas jogáveis):
-  W → mover o peixe (personagem) para cima 
-  S → mover o peixe (personagem) para baixo
-  D → mover o peixe (personagem) para direita
-  Esc → Sair do nível
-    
-  **4.Interface e feedback:**
-  - **Elementos exibidos na tela (pontuação, vidas, mensagens):**
-  - **Design geral (cores, layout, estilo):**
+* **Nome:** Atlantis Dash
+* **Inspiração:** Crossy Road
+* **Objetivo:** Controlar um peixe que deve atravessar obstáculos móveis e fixos para alcançar o final de cada nível.
 
-  **6.Áudio e efeitos:**
-  - **Sons de colisão, música ambiente, efeitos ao marcar pontos:**
-    
-  **7.Estados do jogo:**
-  - **Menu inicial, jogando, game over e reinício:**
-    
+---
+
+### **2. Mecânicas de Jogo**
+
+#### **Movimentação**
+
+* ➡️ Direita
+* ⬆️ Cima
+* ⬇️ Baixo
+  Todos os movimentos têm a mesma distância.
+  O personagem **não pode sair da tela**.
+
+#### **Obstáculos Fixos**
+
+* Pedras
+* Corais
+* Conchas
+* Algas
+
+#### **Obstáculos Móveis**
+
+* Tubarões
+* Caranguejos
+* Águas-vivas
+* Baleias
+
+#### **Níveis de Dificuldade**
+
+* **Nível 1:** 1 obstáculo móvel, pouca quantidade
+* **Nível 2:** 2 obstáculos móveis, quantidade moderada
+* **Nível 3:** 3 obstáculos móveis, muitos obstáculos
+* **Nível 4:** 4 obstáculos móveis, quantidade máxima
+
+#### **Colisões**
+
+* Obstáculo fixo → personagem fica preso
+* Obstáculo móvel → perde 1 vida
+
+---
+
+### **3. Controles**
+
+#### **Menus**
+
+* **W** → opção de cima
+* **S** → opção de baixo
+* **Enter** → confirmar
+* **Esc** → voltar
+
+#### **Jogo**
+
+* **W** → cima
+* **S** → baixo
+* **D** → direita
+* **Esc** → sair do nível ou reiniciar após morrer
+
+---
+
+### **4. Interface e Feedback**
+
+#### **Elementos exibidos**
+
+* Obstáculos
+* Vidas
+* Moedas
+* Personagem
+
+#### **Estilo visual**
+
+* Estética oceânica
+* Sprites coloridos
+* Layout limpo
+
+---
+
+### **5. Áudio e Efeitos**
+
+* Música ambiente
+
+---
+
+### **6. Estados do Jogo**
+
+* Menu inicial
+* Tabela de níveis
+* Jogando
+* Instruções
+* Game Over
+
 </details>
-
+```
