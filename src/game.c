@@ -84,7 +84,12 @@ Game InitGame(int screenWidth, int screenHeight) {
     game.backgroundTexture = LoadTexture("assets/imgs/menu_jogo.png");
     game.seletorNivelBackground = game.backgroundTexture; // por enquanto igual
 
-    
+    // niveis
+    game.mangueTexture = LoadTexture("assets/imgs/mangue.png");
+    game.mangueAtivo = false;
+    game.mangueX = 0;
+
+
     //TEXTURAS DE OBSTÁCULOS
         // Fixos
     game.obstTextures.pedra = LoadTexture("assets/imgs/pedrapronta.png");
@@ -319,6 +324,22 @@ void UpdateGame(Game *game) {
             if (game->tempoParado > 0)
             game->tempoParado -= delta;
         }
+        
+        // ATIVAR O MANGUE QUANDO CHEGAR NO FINAL DO MAPA
+        if (!game->mangueAtivo) {
+
+            int colunaAtual = (int)(game->cameraX / game->colunaLargura);
+
+            // Quando entrar nas últimas N colunas visíveis
+            if (colunaAtual >= game->worldColumns - game->numColunasVisiveis) {
+
+                game->mangueAtivo = true;
+
+                // Posição inicial do mangue = grudado no final do mundo
+                game->mangueX = game->worldColumns * game->colunaLargura;
+            }
+        }
+
         
         // GERAR / REMOVER COLUNAS
         float limiteRemocao = (game->primeiraColuna + 1) * game->colunaLargura;
@@ -571,6 +592,23 @@ void DrawGame(Game *game) {
                                (Vector2){0,0}, 0.0f, WHITE);
             }
         }
+        if (game->mangueAtivo) {
+            float screenX = game->mangueX - game->cameraX;
+            DrawTexturePro(
+                game->mangueTexture,
+                (Rectangle){0,0, game->mangueTexture.width, game->mangueTexture.height},
+                (Rectangle){
+                    screenX,
+                    game->hudAltura,
+                    game->screenWidth,                        // cobre a área jogável
+                    game->screenHeight - game->hudAltura
+                },
+                (Vector2){0,0},
+                0.0f,
+                WHITE
+            );
+        }
+        
 
         // ---------------- HUD ----------------
         DrawTexturePro(game->hudTexture, 
@@ -629,9 +667,17 @@ void DrawGame(Game *game) {
         // ---------------- PLAYER ----------------
         float scalePeixe = (game->blocoTamanho * 0.6f) / game->playerTexture.height;
         Texture2D ptex = (game->playerAnimFrame == 0) ? game->playerTexture : game->playerTexture2;
-        DrawTextureEx(ptex, (Vector2){game->player.x, game->player.y}, 0.0f, scalePeixe, WHITE);
+        bool mangueCobreTela = false;
+        if (game->mangueAtivo) {
+            float screenX = game->mangueX - game->cameraX;
+            if (screenX <= 0) {
+                mangueCobreTela = true;   // ele já cobriu a área inteira
+            }
+        }
+        if (!mangueCobreTela) {
+            DrawTextureEx(ptex, (Vector2){game->player.x, game->player.y}, 0.0f, scalePeixe, WHITE);
+        }
 
-        // ---------------- GAME OVER OVERLAY ----------------
         if (game->showGameOver) {
             float destW = game->screenWidth * 0.8f;
             float destH = destW * ((float)game->gameOverTexture.height / (float)game->gameOverTexture.width);

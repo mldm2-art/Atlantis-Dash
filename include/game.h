@@ -65,6 +65,12 @@ typedef struct { // struct 'Game'
     Texture2D bgMar;
     Texture2D bgAreia;
 
+    // niveis
+    Texture2D mangueTexture;
+    bool mangueAtivo;
+    float mangueX;
+
+
     
     // Menus:
     int menuSelecionado; // índice dos botões da tela de MENU (JOGAR e INTRUÇÕES) que é 0 ou 1
