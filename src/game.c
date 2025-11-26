@@ -820,7 +820,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         
         // COLUNAS DE MAR (MÓVEIS)
         if (game->nivelSelecionado == 0) {
-            numObs = 2;      // 1 bicho por coluna de mar
+            numObs = 1;      // 1 bicho por coluna de mar
         }
 
         else if (game->nivelSelecionado == 1) {
@@ -832,7 +832,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         }
 
         else {
-            numObs = 3;      // 3 por coluna
+            numObs = 2;      // 3 por coluna
         }
     }
 
@@ -847,7 +847,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
         }
 
         else if (game->nivelSelecionado == 2) {
-            numObs = 3;
+            numObs = 2;
         }
         
         else {
@@ -896,7 +896,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                     tipo = OBSTACULO_AGUA_VIVA;
                     velocidade = 80.0f;   // mais rápida
                     largura = larguraBase * 1.2f;
-                    altura  = game->blocoTamanho * 1.1f;
+                    altura  = game->blocoTamanho * 0.9f;
                 }
             }
             // Nível 3: alterna por coluna de MAR (carangueijo / agua-viva / baleia)
@@ -915,14 +915,14 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                     tipo = OBSTACULO_AGUA_VIVA;
                     velocidade = 80.0f;
                     largura = larguraBase * 1.2f;
-                    altura  = game->blocoTamanho * 1.1f;
+                    altura  = game->blocoTamanho * 0.9f;
                 }
 
                 else {
                     tipo = OBSTACULO_BALEIA;
                     velocidade = 50.0f;   // mais lenta, mas grandona e perigosa
-                    largura = larguraBase * 2.2f;
-                    altura  = game->blocoTamanho * 2.0f;  // ocupa 2 blocos
+                    largura = larguraBase * 1.8f;
+                    altura  = game->blocoTamanho * 1.4f;  // ocupa 2 blocos
                     
                 }
             }
@@ -942,36 +942,56 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                     tipo = OBSTACULO_AGUA_VIVA;
                     velocidade = 80.0f;
                     largura = larguraBase * 1.2f;
-                    altura  = game->blocoTamanho * 1.1f;
+                    altura  = game->blocoTamanho * 0.9f;
                 }
 
                 else if (contador == 2) {
                     tipo = OBSTACULO_BALEIA;
                     velocidade = 50.0f;   // lenta, porém gigante
-                    largura = larguraBase * 2.2f;
-                    altura  = game->blocoTamanho * 2.0f;  // ocupa 2 blocos
+                    largura = larguraBase * 1.8f;
+                    altura  = game->blocoTamanho * 1.4f;  // ocupa 2 blocos
                     
                 }
 
                 else {
                     tipo = OBSTACULO_TUBARAO;
                     velocidade = 100.0f;   // rápido e perigoso
-                    largura = larguraBase * 1.8f;
-                    altura  = game->blocoTamanho * 1.4f;
+                    largura = larguraBase * 1.5f;
+                    altura  = game->blocoTamanho * 1.1f;
                 }
             }
+
             if (tipo == OBSTACULO_BALEIA) {
-                distanciaMinima = altura * 1.1f;     // baleia precisa de MAIS espaço
-            } else {
-                distanciaMinima = game->blocoTamanho * 0.9f;  // padrão dos outros
+                distanciaMinima = altura * 1.5f;     // baleia precisa de MAIS espaço
+            } 
+            
+            else if (tipo == OBSTACULO_TUBARAO) {
+                distanciaMinima = altura * 1.25f;  // distância entre os tubarões
+            }
+
+            else {
+                distanciaMinima = altura * 1.00f; // distância caranguejo e água viva
             }
 
             direcao = 1; // descendo
 
             
-            x = colunaX + (game->colunaLargura - largura) * 0.5f;
-            float zonaMin = topoHud + 10; 
-            float zonaMax = limiteInferior - altura - 10;
+            float ajuste = 0.0f;
+            // ajuste fino só para os maiores
+            if (tipo == OBSTACULO_BALEIA) {
+                ajuste = game->colunaLargura * 0.35f;
+            }
+
+
+            else if (tipo == OBSTACULO_TUBARAO) {
+                ajuste = game->colunaLargura * 0.28f;
+            }
+
+            x = colunaX + (game->colunaLargura - largura) * 0.5f + ajuste;
+        
+
+            float zonaMin = topoHud + (game->blocoTamanho * 0.2f); 
+            float zonaMax = limiteInferior - altura - (game->blocoTamanho * 0.2f);
 
             int tentativas = 0;
             bool valido = false;
@@ -981,11 +1001,14 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                 valido = true;
 
                 for (int k = 0; k < gerados; k++) {
-                    if (fabsf(y - posicoesGeradas[k]) < distanciaMinima) {
+                    float outraY = posicoesGeradas[k];
+
+                    if ((y < outraY + altura + 5) && (y + altura + 5 > outraY)) {
                         valido = false;
                         break;
                     }
                 }
+
                 tentativas++;
             }
 
@@ -1006,17 +1029,21 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
             velocidade = 0.0f;
             direcao = 0;
 
-            largura = larguraBase * 0.75f;
-            altura  = game->blocoTamanho;
+            largura = game->blocoTamanho * 0.55f;
+            altura  = game->blocoTamanho * 0.55f;
 
-            x = colunaX + (game->colunaLargura - largura) * 0.5f;
+            x = colunaX + (game->colunaLargura / 2) - (largura / 2);
 
             int tentativas = 0;
             bool valido = false;
 
             while (!valido && tentativas < 30) {
                 int linha = rand() % game->linhas;
-                y = topoHud + linha * game->blocoTamanho;
+                y = topoHud + linha * game->blocoTamanho 
+                    + (game->blocoTamanho / 2) 
+                    - (altura / 2);
+
+                y += game->blocoTamanho * 0.05f;
 
                 valido = true;
 
@@ -1030,7 +1057,7 @@ static void SpawnColumn(Game *game, int worldColumnIndex) {
                 tentativas++;
             }
 
-            if (!valido) return; // evita nascimento bugado
+            if (!valido) break; 
 
             posicoesGeradas[gerados++] = y;
         }

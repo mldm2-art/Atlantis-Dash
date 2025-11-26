@@ -22,64 +22,92 @@ Obstacle *CreateObstacle(ObstaculoTipo tipo,
     o->next = NULL;
 
     // ----------------------
-    // HITBOX POR TIPO
+    // HITBOX PERSONALIZADA POR TIPO
     // ----------------------
-    float fatorX = 0.25f;
-    float fatorY = 0.25f;
 
-    switch (tipo) {
-        // Bem pequenos
-        case OBSTACULO_CONCHA:
-            fatorX = 0.42f;
-            fatorY = 0.42f;
-            break;
+    float hbX, hbY, hbW, hbH;
 
-        // Médios
-        case OBSTACULO_PEDRA:
-            fatorX = 0.28f;
-            fatorY = 0.28f;
-            break;
+    // ================= FIXOS =================
 
-        case OBSTACULO_CORAL:
-            fatorX = 0.25f;
-            fatorY = 0.20f;
-            break;
-
-        // Altas e finas
-        case OBSTACULO_ALGA:
-            fatorX = 0.38f;
-            fatorY = 0.15f;
-            break;
-
-        // Mais largas
-        case OBSTACULO_CARANGUEJO:
-            fatorX = 0.20f;
-            fatorY = 0.22f;
-            break;
-
-        case OBSTACULO_AGUA_VIVA:
-            fatorX = 0.18f;
-            fatorY = 0.18f;
-            break;
-
-        // Gigantes
-        case OBSTACULO_TUBARAO:
-            fatorX = 0.15f;
-            fatorY = 0.15f;
-            break;
-
-        case OBSTACULO_BALEIA:
-            fatorX = 0.10f;
-            fatorY = 0.10f;
-            break;
+    // Concha (pequena, bem central)
+    if (tipo == OBSTACULO_CONCHA) {
+        hbX = x + largura * 0.30f;
+        hbY = y + altura  * 0.30f;
+        hbW = largura * 0.40f;
+        hbH = altura  * 0.40f;
     }
 
+    // Pedra
+    else if (tipo == OBSTACULO_PEDRA) {
+        hbX = x + largura * 0.25f;
+        hbY = y + altura  * 0.25f;
+        hbW = largura * 0.50f;
+        hbH = altura  * 0.50f;
+    }
+
+    // Coral
+    else if (tipo == OBSTACULO_CORAL) {
+        hbX = x + largura * 0.20f;
+        hbY = y + altura  * 0.20f;
+        hbW = largura * 0.60f;
+        hbH = altura  * 0.60f;
+    }
+
+    // Alga (colisão mais no meio)
+    else if (tipo == OBSTACULO_ALGA) {
+        hbX = x + largura * 0.35f;
+        hbY = y + altura  * 0.10f;
+        hbW = largura * 0.30f;
+        hbH = altura  * 0.80f;
+    }
+
+
+// ================= MÓVEIS =================
+
+
+    // 🦀 Caranguejo → corpo, não pernas
+    else if (tipo == OBSTACULO_CARANGUEJO) {
+        hbX = x + largura * 0.35f;
+        hbY = y + altura  * 0.25f;
+        hbW = largura * 0.30f;
+        hbH = altura  * 0.45f;
+    }
+
+    // 🪼 Água-viva → só a "cabeça"
+    else if (tipo == OBSTACULO_AGUA_VIVA) {
+        hbX = x + largura * 0.25f;
+        hbY = y + altura  * 0.05f;
+        hbW = largura * 0.50f;
+        hbH = altura  * 0.40f;
+    }
+
+
+
+    // 🐳 Baleia → só região central/traseira (corpo)
+    else if (tipo == OBSTACULO_BALEIA) {
+        hbX = x + largura * 0.45f;     // ignora a frente inteira
+        hbY = y + altura * 0.30f;
+        hbW = largura * 0.35f;
+        hbH = altura  * 0.40f;
+    }
+
+
+
+    // 🦈 Tubarão → região da boca / centro
+    else if (tipo == OBSTACULO_TUBARAO) {
+        hbX = x + largura * 0.32f;
+        hbY = y + altura  * 0.25f;
+        hbW = largura * 0.42f;
+        hbH = altura  * 0.45f;
+    }
+
+
     o->hitbox = (Rectangle){
-        x + (largura * fatorX),
-        y + (altura  * fatorY),
-        largura * (1 - 2 * fatorX),
-        altura  * (1 - 2 * fatorY)
-};
+        hbX,
+        hbY,
+        hbW,
+        hbH
+    };
 
     return o;
 }
