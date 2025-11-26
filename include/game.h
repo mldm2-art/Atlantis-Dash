@@ -84,7 +84,12 @@ typedef struct { // struct 'Game'
 
     int worldColumns;          // total de colunas no nível (MUNDO) obs:podemos ajustar isso também
     int primeiraColuna;        // índice da coluna mais à esquerda do mundo (que será destruída ao apertar 'D')
-    int proximaColuna;         // próxima coluna do mundo a ser gerada à direita (que será criada ao apertar 'D')
+    int proximaColuna; 
+    
+
+    // próxima coluna do mundo a ser gerada à direita (que será criada ao apertar 'D')
+
+    Music musica;
 } Game;
 
 Game InitGame(int screenWidth, int screenHeight); // função da raylib que monta toda a estrutura para iniciar o jogo

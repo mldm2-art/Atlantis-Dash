@@ -16,6 +16,13 @@ Game InitGame(int screenWidth, int screenHeight) {
     Game game = {0};
 
     srand((unsigned int)time(NULL));
+    game.musica = LoadMusicStream("assets/sons/musica.mp3");
+    PlayMusicStream(game.musica);
+
+
+
+
+
 
     game.screenWidth = screenWidth;
     game.screenHeight = screenHeight;
@@ -117,6 +124,11 @@ Game InitGame(int screenWidth, int screenHeight) {
 // Atualização
 // ------------------------
 void UpdateGame(Game *game) {
+
+    UpdateMusicStream(game->musica);
+
+
+
     // (por enquanto ignorando resize pra não complicar colunas)
     if (game->estado == MENU) {
         if (IsKeyPressed(KEY_W) && game->menuSelecionado > 0) game->menuSelecionado--;
@@ -574,6 +586,10 @@ void UnloadGame(Game *game) {
     // Background
     UnloadTexture(game->bgMar);
     UnloadTexture(game->bgAreia);
+    //musica
+    UnloadMusicStream(game->musica);
+    CloseAudioDevice();
+
 
 
 }
