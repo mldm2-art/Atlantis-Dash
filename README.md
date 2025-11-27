@@ -127,9 +127,9 @@ Projeto desenvolvido por estudantes da **Cesar School** para a disciplina de
 
 #### **Movimentação**
 
-* ➡️ Direita
-* ⬆️ Cima
-* ⬇️ Baixo
+* **D** Direita
+* **W** Cima
+* **s** Baixo
   Todos os movimentos têm a mesma distância.
   O personagem **não pode sair da tela**.
 
@@ -169,6 +169,8 @@ Projeto desenvolvido por estudantes da **Cesar School** para a disciplina de
 * **S** → opção de baixo
 * **Enter** → confirmar
 * **Esc** → voltar
+* **Q** → anvançar e salvar moedas
+* **R** → zerar moedas
 
 #### **Jogo**
 
