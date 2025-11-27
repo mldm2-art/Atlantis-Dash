@@ -1,12 +1,11 @@
-#ifndef GAME_H // esses dois '#' impedem que o arquivo seja incluido duas vezes (include guard)
+#ifndef GAME_H
 #define GAME_H
 
-#include "raylib.h" // bilibioteca gráfica que possui diversas funções próprias como a Texture, a Draw
-#include "obstacle.h" // Estruturas e funções de obstáculos (lista encadeada)
+#include "raylib.h"
+#include "obstacle.h"
 #include "textures.h"
-#include <stdbool.h> // para usar bool no struct Game
+#include <stdbool.h>
 
-// Estados do jogo (telas):
 typedef enum {
     MENU,
     INSTRUCOES,
@@ -14,7 +13,6 @@ typedef enum {
     JOGANDO
 } GameState;
 
-// Estrutura do jogador (peixe):
 typedef struct { 
     float x, y;
     float largura, altura; 
@@ -35,102 +33,98 @@ typedef struct Moeda {
     struct Moeda *next;
 } Moeda;
 
+typedef struct { 
+    GameState estado;
 
-// Estrutura principal do jogo:
-typedef struct { // struct 'Game' 
-    GameState estado; // criação de uma variável 'estado' do tipo 'GameState' para sabermos em que tel estamos no momento
-
-    // Dimensões da tela do raylib:
     int screenWidth; 
     int screenHeight;
 
-    // Grid vertical (linhas horizontais)
-    int linhas; // quantidade de linhas horizontais que ele usa no tela obs:podemos aumentar a quantidade de linhas 
-    float hudAltura; // tamanho da barra superior de HUD
-    float blocoTamanho; // distancia entre as linhas da area jogavel (memsa coisa que tem no struct 'Player')
+    int linhas;
+    float hudAltura;
+    float blocoTamanho;
 
-    // Player:
-    Player player; // criação de uma variável chamada 'player' do tipo 'Player'
-    Texture2D playerTexture; // sprite do peixe vem aqui 
-    Texture2D playerTexture2;   // segundo sprite do peixe
-    float playerAnimTimer;      // contador interno
-    int playerAnimFrame;        // 0 ou 1 para alternar sprites
+    // Player
+    Player player;
+    Texture2D playerTexture;
+    Texture2D playerTexture2;
+    float playerAnimTimer;
+    int playerAnimFrame;
 
-
-    // Fundos:
-    Texture2D backgroundTexture; // a gente tem uma imagem salva chamada 'menu_jogo.png em 'assets/imgs' 
-    Texture2D seletorNivelBackground; // a gente tem uma imagem salva chamada 'menu_jogo.png em 'assets/imgs'
-    // Texturas agrupadas de obstáculos
+    // Fundos
+    Texture2D backgroundTexture; 
+    Texture2D seletorNivelBackground;
     ObstacleTextures obstTextures;
     Texture2D bgMar;
     Texture2D bgAreia;
 
-    // niveis
-    Texture2D mangueTexture;
-    bool mangueAtivo;
-    float mangueX;
-
-
+    // --- MUDANÇA AQUI: FINAIS DE FASE ---
+    Texture2D finaisFase[4];      // Imagens normais
+    Texture2D finaisFaseAnim[4];  // Imagens animadas
+    Texture2D nivelConcluidoImg;  // Tela final "Nível Concluído"
     
-    // Menus:
-    int menuSelecionado; // índice dos botões da tela de MENU (JOGAR e INTRUÇÕES) que é 0 ou 1
-    int nivelSelecionado; // índice dos botões da tela de SELEÇÃO DE NÍVEL (NÍVEL 1, NÍVEL 2, NÍVEL 3 e NÍVEL 4) que é de 0 a 3
+    bool finalFaseAtivo;          // Se o fundo final já começou a aparecer
+    float finalFaseX;             // Posição X do fundo final
+    
+    float bgAnimTimer;            // Timer para animar o fundo
+    int bgAnimFrame;              // Frame atual (0 ou 1)
+    
+    float levelCompleteTimer;     // <--- NOVO: Conta o tempo antes de mostrar "Nível Concluído"
+    bool showLevelComplete;       // Se mostra a imagem final
+    // ------------------------------------
+    
+    // Menus
+    int menuSelecionado;
+    int nivelSelecionado;
 
-    HUD hud; // criação da variável 'hud' do tipo 'HUD'
+    HUD hud;
     Texture2D hudTexture;
 
     // Moedas
-    int totalMoedasSalvas; // Armazena o valor lido do txt
+    int totalMoedasSalvas;
     Texture2D moedaTexture;
     Moeda *moedas;
 
-
-
-    // Obstáculos (lista encadeada):
+    // Obstáculos
     Obstacle *obstaculos; 
     
-    //animacao obstaculos
+    // Animação obstaculos
     float carangueijoAnimTimer;
     int carangueijoAnimFrame;
     float aguaVivaAnimTimer;
-    int aguaVivaAnimFrame;  // 0 = centro, 1 = direita, 2 = centro, 3 = esquerda
+    int aguaVivaAnimFrame;
     float baleiaAnimTimer;
-    int baleiaAnimFrame;   // 0 = parada, 1 = animada
+    int baleiaAnimFrame;
     float tubaraoAnimTimer;
-    int tubaraoAnimFrame;   // 0..3 (centro → dir → centro → esq)
+    int tubaraoAnimFrame;
 
-
-
-    // Mundo em colunas + câmera:
-    float cameraX;             // deslocamento horizontal da câmera em pixels (quanto mundo já “rolou” para a esquerda)
-    float cameraDestinoX;   // posição atual é cameraX e a posição de destino(cameraDestinoX) é: cameraX + larguraDeUmBloco. -> Depois disso a câmera vai deslizando até chegar nesse destino.
-    bool cameraMovendo; // a camera ta andando agr? true: ta se movendo, flase: ta parada (impede que o jogador aperte d varias vezes enquanto a cameta ta andando)
-    float cameraVelocidade; // pixels por frame, velocidade da camera
+    // Câmera
+    float cameraX;
+    float cameraDestinoX;
+    bool cameraMovendo;
+    float cameraVelocidade;
     float tempoParado;
 
     Texture2D gameOverTexture;
     bool showGameOver;
     bool waitingForContinue;
 
+    int numColunasVisiveis;
+    float colunaLargura;
 
-
-    int numColunasVisiveis;    // quantidade de colunas que vemos por tela (7 por tela) obs:podemos aumentar isso também
-    float colunaLargura;       // largura de cada coluna em pixels (colunaLargura = screenWidth / numColunasVisiveis)
-
-    int worldColumns;          // total de colunas no nível (MUNDO) obs:podemos ajustar isso também
-    int primeiraColuna;        // índice da coluna mais à esquerda do mundo (que será destruída ao apertar 'D')
+    int worldColumns;
+    int primeiraColuna;
     int proximaColuna; 
     
-
-    // próxima coluna do mundo a ser gerada à direita (que será criada ao apertar 'D')
-
     Music musica;
 } Game;
 
-Game InitGame(int screenWidth, int screenHeight); // função da raylib que monta toda a estrutura para iniciar o jogo
-void UpdateGame(Game *game); // função para atualizar o jogo (usa como paramêtro um ponteiro 'game' para struct 'Game')
-void DrawGame(Game *game); // função para desenhar o jogo (usa como paramêtro um ponteiro 'game' para struct 'Game')
-void UnloadGame(Game *game); // função que libera memória (texturas e listas encadeadas) (usa como paramêtro um ponteiro 'game' para struct 'Game')
+Game InitGame(int screenWidth, int screenHeight);
+void UpdateGame(Game *game);
+void DrawGame(Game *game);
+void UnloadGame(Game *game);
 void GenerateWorldForLevel(Game *game);
+
+void SalvarBanco(int total);
+int CarregarBanco();
 
 #endif

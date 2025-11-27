@@ -37,4 +37,4 @@ run: all
 	./$(EXEC_NAME)
 
 clean:
-	rm -f $(EXEC_NAME)
+	rm -f $(EXEC_NAME)A

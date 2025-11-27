@@ -69,8 +69,8 @@ Obstacle *CreateObstacle(ObstaculoTipo tipo,
     else if (tipo == OBSTACULO_CARANGUEJO) {
         hbX = x + largura * 0.35f;
         hbY = y + altura  * 0.25f;
-        hbW = largura * 0.30f;
-        hbH = altura  * 0.45f;
+        hbW = largura * 0.14f;
+        hbH = altura  * 0.18f;
     }
 
     // 🪼 Água-viva → só a "cabeça"
