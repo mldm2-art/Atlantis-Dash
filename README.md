@@ -125,13 +125,6 @@ Projeto desenvolvido por estudantes da **Cesar School** para a disciplina de
 
 ### **2. Mecânicas de Jogo**
 
-#### **Movimentação**
-
-* **D** Direita
-* **W** Cima
-* **s** Baixo
-  Todos os movimentos têm a mesma distância.
-  O personagem **não pode sair da tela**.
 
 #### **Obstáculos Fixos**
 
@@ -214,3 +207,4 @@ Projeto desenvolvido por estudantes da **Cesar School** para a disciplina de
 
 </details>
 ```
+
