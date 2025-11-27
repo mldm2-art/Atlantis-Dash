@@ -544,9 +544,16 @@ void DrawGame(Game *game) {
                 (Rectangle){0, 0, game->nivelConcluidoImg.width, game->nivelConcluidoImg.height},
                 (Rectangle){0, 0, (float)game->screenWidth, (float)game->screenHeight},
                 (Vector2){0, 0}, 0.0f, WHITE);
+            if (IsKeyPressed(KEY_Q)) {
+            game->totalMoedasSalvas += game->hud.moedas;
+            SalvarBanco(game->totalMoedasSalvas);
+            game->hud.moedas = 0;
+            game->estado = SELECAO_NIVEL;
+            DestroyObstacleList(&game->obstaculos);
+            ResetPlayer(game);
+        }
             
-            int tw = MeasureText(msg, 30);
-            DrawText(msg, game->screenWidth/2 - tw/2, game->screenHeight - 100, 30, GREEN);
+            
         }
 
         if (game->showGameOver) {

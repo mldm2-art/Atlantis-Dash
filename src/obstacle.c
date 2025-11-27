@@ -77,8 +77,8 @@ Obstacle *CreateObstacle(ObstaculoTipo tipo,
     else if (tipo == OBSTACULO_AGUA_VIVA) {
         hbX = x + largura * 0.25f;
         hbY = y + altura  * 0.05f;
-        hbW = largura * 0.50f;
-        hbH = altura  * 0.40f;
+        hbW = largura * 0.30f;
+        hbH = altura  * 0.30f;
     }
 
 
